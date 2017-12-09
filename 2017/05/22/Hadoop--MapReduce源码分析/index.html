@@ -1,0 +1,1192 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+  
+  
+  <link rel="stylesheet" media="all" href="/lib/Han/dist/han.min.css?v=3.3">
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Hadoop,MapReduce," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.1" />
+
+
+
+
+
+
+<meta name="description" content="Hadoop–MapReduce源码分析（转）[TOC]   注：本文转自http://blog.xiaoxiaomo.com/2016/07/08/Hadoop-MapReduce源码分析/，支持原创  MapReduce运行机制 下面从两个角度来讲解MapReduce的运行机制：   各个角色实体; 运行的时间先后顺序。   各个角色实体 程序运行时过程设计到的一个角色实体1.1. Clien">
+<meta name="keywords" content="Hadoop,MapReduce">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Hadoop--MapReduce源码分析（转）">
+<meta property="og:url" content="http://yoursite.com/2017/05/22/Hadoop--MapReduce源码分析/index.html">
+<meta property="og:site_name" content="大数据部落">
+<meta property="og:description" content="Hadoop–MapReduce源码分析（转）[TOC]   注：本文转自http://blog.xiaoxiaomo.com/2016/07/08/Hadoop-MapReduce源码分析/，支持原创  MapReduce运行机制 下面从两个角度来讲解MapReduce的运行机制：   各个角色实体; 运行的时间先后顺序。   各个角色实体 程序运行时过程设计到的一个角色实体1.1. Clien">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2F20160419199999.jpg">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce00.jpg">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce39.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce01.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce02.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce03.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce04.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce05.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce06.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce07.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce08.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce09.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce10.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce11.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce12.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce13.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce14.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce15.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce16.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce17.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce18.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce19.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce20.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce21.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce22.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce23.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce24.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce25.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce26.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce27.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce28.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce29.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce30.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce31.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce32.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce33.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce34.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce35.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce36.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce37.png">
+<meta property="og:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce38.png">
+<meta property="og:updated_time" content="2017-12-08T05:13:49.292Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Hadoop--MapReduce源码分析（转）">
+<meta name="twitter:description" content="Hadoop–MapReduce源码分析（转）[TOC]   注：本文转自http://blog.xiaoxiaomo.com/2016/07/08/Hadoop-MapReduce源码分析/，支持原创  MapReduce运行机制 下面从两个角度来讲解MapReduce的运行机制：   各个角色实体; 运行的时间先后顺序。   各个角色实体 程序运行时过程设计到的一个角色实体1.1. Clien">
+<meta name="twitter:image" content="http://img.xiaoxiaomo.com/blog%2Fimg%2F20160419199999.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"always","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2017/05/22/Hadoop--MapReduce源码分析/"/>
+
+
+
+
+
+  <title>Hadoop--MapReduce源码分析（转） | 大数据部落</title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">大数据部落</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">Hadoop, Spark, OpenStack，Docker</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/05/22/Hadoop--MapReduce源码分析/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="[object Object]">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="大数据部落">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Hadoop--MapReduce源码分析（转）</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-22T14:10:00+08:00">
+                2017-05-22
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2017-12-08T13:13:49+08:00">
+                2017-12-08
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Hadoop/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Hadoop/MapReduce/" itemprop="url" rel="index">
+                    <span itemprop="name">MapReduce</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a class="cloud-tie-join-count" href="/2017/05/22/Hadoop--MapReduce源码分析/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count join-count" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/2017/05/22/Hadoop--MapReduce源码分析/" class="leancloud_visitors" data-flag-title="Hadoop--MapReduce源码分析（转）">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数 </span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    <div class="post-body han-init-context" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="Hadoop–MapReduce源码分析（转）"><a href="#Hadoop–MapReduce源码分析（转）" class="headerlink" title="Hadoop–MapReduce源码分析（转）"></a>Hadoop–MapReduce源码分析（转）</h1><p>[TOC]</p>
+<hr>
+<blockquote>
+<p>注：本文转自<a href="http://blog.xiaoxiaomo.com/2016/07/08/Hadoop-MapReduce源码分析/，支持原创" target="_blank" rel="external">http://blog.xiaoxiaomo.com/2016/07/08/Hadoop-MapReduce源码分析/，支持原创</a></p>
+</blockquote>
+<h2 id="MapReduce运行机制"><a href="#MapReduce运行机制" class="headerlink" title="MapReduce运行机制"></a>MapReduce运行机制</h2><ul>
+<li>下面从<strong>两个角度</strong>来讲解MapReduce的运行机制：</li>
+</ul>
+<ol>
+<li><strong>各个角色实体</strong>;</li>
+<li><strong>运行的时间先后顺序</strong>。</li>
+</ol>
+<p><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2F20160419199999.jpg" alt="img"></p>
+<h3 id="各个角色实体"><a href="#各个角色实体" class="headerlink" title="各个角色实体"></a>各个角色实体</h3><ol>
+<li><strong>程序运行时过程设计到的一个角色实体</strong><br>1.1. <strong>Client</strong>：编写mapreduce程序，配置作业，提交作业的客户端 ；<br>1.2. <strong>ResourceManager</strong>：集群中的资源分配管理 ；<br>1.3. <strong>NodeManager</strong>：启动和监管各自节点上的计算资源 ；<br>1.4. <strong>ApplicationMaster</strong>：每个程序对应一个AM，负责程序的任务调度，本身也是运行在NM的Container中 ；<br>1.5. <strong>HDFS</strong>：分布式文件系统，保存作业的数据、配置信息等等。</li>
+<li><strong>客户端提交Job</strong><br>2.1. 客户端编写好Job后，调用Job实例的Submit()或者waitForCompletion()方法提交作业；<br>2.2. 客户端向ResourceManager请求分配一个Application ID，客户端会对程序的输出、输入路径进行检查，如果没有问题，进行作业输入分片的计算。</li>
+<li><strong>Job提交到ResourceManager</strong><br>3.1. 将作业运行所需要的资源拷贝到HDFS中（jar包、配置文件和计算出来的输入分片信息等）；<br>3.2. 调用ResourceManager的submitApplication方法将作业提交到ResourceManager。</li>
+<li><strong>给作业分配ApplicationMaster</strong><br>4.1. ResourceManager收到submitApplication方法的调用之后会命令一个NodeManager启动一个Container ；<br>4.2. 在该NodeManager的Container上启动管理该作业的ApplicationMaster进程。</li>
+<li><strong>ApplicationMaster初始化作业</strong><br>5.1. ApplicationMaster对作业进行初始化操作；<br>5.2. ApplicationMaster从HDFS中获得输入分片信息(map、reduce任务数)</li>
+<li><strong>任务分配</strong><br>6.1. ApplicationMaster为其每个map和reduce任务向RM请求计算资源；<br>6.2. map任务优先于reduce任，map数据优先考虑本地化的数据。</li>
+<li><strong>任务执行</strong>，在 Container 上启动任务（通过YarnChild进程来运行），执行map/reduce任务。</li>
+</ol>
+<h3 id="时间先后顺序"><a href="#时间先后顺序" class="headerlink" title="时间先后顺序"></a>时间先后顺序</h3><ol>
+<li><strong>输入分片（input split）</strong><br>每个输入分片会让一个map任务来处理，默认情况下，以HDFS的一个块的大小（默认为128M，可以设置）为一个分片。map输出的结果会暂且放在一个环形内存缓冲区中（<code>默认mapreduce.task.io.sort.mb=100M</code>）,当该缓冲区快要溢出时（<code>默认mapreduce.map.sort.spill.percent=0.8</code>）,会在本地文件系统中创建一个溢出文件，将该缓冲区中的数据写入这个文件；</li>
+<li><strong>map阶段</strong>：由我们自己编写，最后调用 context.write(…)；</li>
+<li><strong>partition分区阶段</strong><br>3.1. 在map中调用 context.write(k2,v2)方法输出，该方法会立刻调用 Partitioner类对数据进行分区，一个分区对应一个 reduce task。<br>3.2. 默认的分区实现类是 <strong>HashPartitioner</strong> ，根据<code>k2的哈希值 % numReduceTasks</code>，可能出现“数据倾斜”现象。<br>3.3. 可以自定义 partition ，调用 job.setPartitioner(…)自己定义分区函数。</li>
+<li><strong>combiner合并阶段</strong>：将属于同一个reduce处理的输出结果进行合并操作<br>4.1. 是可选的；<br>4.2. 目的有三个：1.减少Key-Value对；2.减少网络传输；3.减少Reduce的处理。</li>
+<li><strong>shuffle阶段</strong>：即Map和Reduce中间的这个过程<br>5.1. 首先 <strong>map</strong> 在做输出时候会在内存里开启一个环形内存缓冲区，专门用来做输出，同时map还会启动一个守护线程；<br>5.2. 如缓冲区的内存达到了阈值的80%，守护线程就会把内容写到磁盘上，这个过程叫<strong>spill</strong>，另外的20%内存可以继续写入要写进磁盘的数据；<br>5.3. 写入磁盘和写入内存操作是互不干扰的，如果缓存区被撑满了，那么map就会阻塞写入内存的操作，让写入磁盘操作完成后再继续执行写入内存操作;<br>5.4. 写入磁盘时会有个排序操作，如果定义了combiner函数，那么排序前还会执行combiner操作；<br>5.5. 每次spill操作也就是写入磁盘操作时候就会写一个溢出文件，也就是说在做map输出有几次spill就会产生多少个溢出文件，等map输出全部做完后，map会合并这些输出文件，这个过程里还会有一个Partitioner操作（如上）<br>5.6. 最后 <strong>reduce</strong> 就是合并map输出文件，Partitioner会找到对应的map输出文件，然后进行复制操作，复制操作时reduce会开启几个复制线程，这些线程默认个数是5个（可修改），这个复制过程和map写入磁盘过程类似，也有阈值和内存大小，阈值一样可以在配置文件里配置，而内存大小是直接使用reduce的tasktracker的内存大小，复制时候reduce还会进行排序操作和合并文件操作，这些操作完了就会进行reduce计算了。</li>
+<li><strong>reduce阶段</strong>：由我们自己编写，最终结果存储在hdfs上的。</li>
+</ol>
+<ul>
+<li><strong>MapReduce过程概述</strong>：</li>
+</ul>
+<ol>
+<li><strong>Job提交任务</strong>，会做初始化配置文件、检查Output Path、请求RM获取JobId、复制资源文件到HDFS等操作然后提交job作业；</li>
+<li><strong>RM接收到作业</strong>后会初始化Job对象，然后启动一个NM会从HDFS获取资源文件分配一个Container,在Container中启动一个AM，在过程中会把文件分割为多个输入分片；</li>
+<li>每个输入分片会让一个<strong>map任务来处理</strong>，<strong>输出多个键值对</strong>，输出的结果会暂且放在一个环形内存缓冲区中；</li>
+<li>紧接着就是<strong>分区</strong>，目的是把k2分配到不同的reduce task；</li>
+<li><strong>map输出</strong>时可能会有很多的溢出文件，要将这些文件合并。合并的过程中会不断地进行排序和combia操作，最后合并成了一个已分区且已排序的文件。</li>
+<li><strong>reduce阶段</strong>，接收到不同map任务传来的数据，如果接收数据大超过阈值就会溢出写入磁盘，溢出文件增多合并成大的有序的文件（反复地执行排序，合并操作）</li>
+<li><strong>MapReduce会让写入磁盘的数据尽可能地少</strong>，并且最后一次合并的结果并没有写入磁盘，而是直接输入到reduce函数。<br><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce00.jpg" alt="MapReduce的Shuffle和排序"></li>
+</ol>
+<h1 id="Job提交作业"><a href="#Job提交作业" class="headerlink" title="Job提交作业"></a>Job提交作业</h1><p><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce39.png" alt="对Job提交作业画了一个简单的图"></p>
+<p>对Job提交作业画了一个简单的图</p>
+<ol>
+<li><p><strong>Job开始提交任务</strong></p>
+<p><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce01.png" alt="一个简单的MapReduce开始提交任务"></p>
+<p>一个简单的MapReduce开始提交任务</p>
+</li>
+<li>接下来我们进入<strong>Job</strong>类看一看<strong>waitForCompletion</strong>方法，<strong>waitForCompletion</strong>方法中主要调用了两个方法：<code>submit()</code>和<code>monitorAndPrintJob()</code>，如下图所示：<br><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce02.png" alt="Job类的waitForCompletion()方法"><br>Job类的waitForCompletion()方法</li>
+</ol>
+<h2 id="submit方法"><a href="#submit方法" class="headerlink" title="submit方法"></a>submit方法</h2><ul>
+<li>在waitForCompletion中，我们先看一看<strong>submit</strong>方法，该方法<strong>主要提交Job，调用JobSubmitter.submitJobInternal()方法完成</strong><br><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce03.png" alt="waitForCompletion的submit()方法"><br>waitForCompletion的submit()方法</li>
+</ul>
+<h3 id="submitJobInternal"><a href="#submitJobInternal" class="headerlink" title="submitJobInternal"></a>submitJobInternal</h3><ul>
+<li><p><strong>submitJobInternal()，主要有以下几个主要功能：</strong><br>1、会检查job的Output Path；<br>2、设置Job ID<br>3、设置Job 命令选项<br>4、分割、切片并创建splits文件<br>5、复制配置文件到HDFS<br>6、正在的提交Job</p>
+</li>
+<li><p>具体代码如下：</p>
+<p><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce04.png" alt="img"><br><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce05.png" alt="img"><br><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce06.png" alt="img"><br><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce07.png" alt="submitJobInternal()方法"><br>submitJobInternal()方法</p>
+</li>
+</ul>
+<ol>
+<li><strong>checkSpecs()</strong> 方法检查output文件；</li>
+<li><strong>setJobID()</strong> 设置Job ID；</li>
+<li><strong>writeSplits()</strong> 写Splits文件；</li>
+<li><strong>cleanUpTokenReferral()</strong> 清除jobtoken referrals；</li>
+<li><strong>writeConf()</strong> 写入job相关的配置文件到HDFS；</li>
+<li><strong>submitClient.submitJob()</strong> 做真正的提交Job。</li>
+</ol>
+<h3 id="writeSplits"><a href="#writeSplits" class="headerlink" title="writeSplits"></a>writeSplits</h3><ul>
+<li><p>在看<strong>submitClient.submitJob()</strong>之前我们先看一看分割、切片<strong>writeSplits()</strong> 方法</p>
+<p><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce08.png" alt="writeSplits() 方法"></p>
+<p>writeSplits() 方法</p>
+</li>
+<li><strong>writeSplits</strong>下面调用了<strong>writeNewSplits()</strong>和<strong>writeOldSplits()</strong>方法，我们只看一个writeNewSplits方法：</li>
+</ul>
+<ol>
+<li>通过InputFormat的getSplits()方法获取一个List</li>
+<li><p>排序后再创建SplitFiles</p>
+<p><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce09.png" alt="writeNewSplits()方法"></p>
+<p>writeNewSplits()方法</p>
+</li>
+</ol>
+<h3 id="InputFormat"><a href="#InputFormat" class="headerlink" title="InputFormat"></a>InputFormat</h3><p>InputFormat抽象类仅有两个抽象方法：</p>
+<ol>
+<li><strong>List getSplits()</strong>， 获取由输入文件计算出输入分片(InputSplit)，解决数据或文件分割成片问题。</li>
+<li><strong>RecordReader createRecordReader()</strong>，创建RecordReader，从InputSplit中读取数据，解决读取分片中数据问题</li>
+<li><strong>具体完成以下功能</strong>：<br>3.1. 验证作业输入的正确性<br>3.2. 将输入文件切割成逻辑分片(InputSplit)，一个InputSplit将会被分配给一个独立的MapTask<br>3.3. 提供RecordReader实现，读取InputSplit中的“K-V对”供Mapper使用</li>
+</ol>
+<ul>
+<li><strong>一、getSplits()</strong></li>
+<li><p>一.1、<strong>getSplits()</strong>是<strong>InputFormat</strong>接口的抽象方法，所以我们在具体<strong>InputFormat</strong>的实现类下面的实现方法就行了，如下图：<br><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce10.png" alt="具体**InputFormat**的实现类"></p>
+<p>具体<strong>InputFormat</strong>的实现类</p>
+</li>
+<li>一.2、下面我们来看看<strong>FileInputFormat</strong>在这里，记得弄清楚Splits和Block的关系<br><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce11.png" alt="img"><br><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce12.png" alt="FileInputFormat的getSplits()方法"><br>FileInputFormat的getSplits()方法</li>
+</ul>
+<ol>
+<li><strong>一个InputSplit对应一个Map Task</strong>；</li>
+<li><strong>默认文件可分割(true)，这样一个block（128MB）就对应一个InputSplit(通过computeSplitSize(…)方法)</strong>；</li>
+<li><strong>通过分析while循环，得知一个InputSplit对应一个block有利于map计算的数据本地化</strong>；</li>
+<li>如<strong>果文件不允许分隔，整个文件作为一个InputSplit，这样一个InputSplit就可能对应多个block</strong>。<br>注意：getSplits完成后返回一个List InputSplit，然后对它进行<strong>排序sort</strong>和<strong>创建Split文件</strong>createSplitFiles具体的排序算法这些博主就不一一贴图了，比较好理解，大家可以自己去看看。</li>
+</ol>
+<h3 id="提交JOB到RM"><a href="#提交JOB到RM" class="headerlink" title="提交JOB到RM"></a>提交JOB到RM</h3><p>下面看一看<strong>ClientProtocol 提交Job submitJob</strong>的实现类<strong>YARNRunner</strong>，主要是提交<strong>Job</strong>到<strong>ResourceManager</strong><br><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce13.png" alt="submitJob的实现类YARNRunner"><br>submitJob的实现类YARNRunner</p>
+<h2 id="monitorAndPrintJob"><a href="#monitorAndPrintJob" class="headerlink" title="monitorAndPrintJob"></a>monitorAndPrintJob</h2><ul>
+<li>上面submit方法已经提交job了，该方法就是做一些监控，并打印日志信息<br><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce14.png" alt="img"><br><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce15.png" alt="monitorAndPrintJob()方法"><br>monitorAndPrintJob()方法</li>
+</ul>
+<h1 id="读取InputSplit中的数据"><a href="#读取InputSplit中的数据" class="headerlink" title="读取InputSplit中的数据"></a>读取InputSplit中的数据</h1><ul>
+<li><strong>读取InputSplit中的数据，转成k1,v1</strong> ，由<strong>LineRecordReader</strong>完成，存在于<strong>TextInputFormat</strong>。<br><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce16.png" alt="TextInputFormat类"><br>TextInputFormat类</li>
+</ul>
+<ol>
+<li><strong>TextInputFormat方法</strong> 相当于一个解释器，有很多的解释器，TextInputFormat为默认的文本解释器；</li>
+<li><strong>TextInputFormat方法</strong> 重写了<strong>isSplitable</strong>方法和 <strong>RecordReader</strong> 方法（）相当于定义了自己的规则；</li>
+<li><strong>getRecordReader方法</strong> 最后返回了一个<strong>LineRecordReader的实例</strong>。<br><strong>注</strong>：我们的job程序默认使用的就是TextInputFormat，该类的泛型已经明确指定了，所以在job配置的时候，不需要指定k1,v1的类型。</li>
+</ol>
+<ul>
+<li><strong>下面我们来一起看一看LineRecordReader类</strong>：<br><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce17.png" alt="LineRecordReader类"><br>LineRecordReader类</li>
+</ul>
+<ol>
+<li><strong>先看看父类RecordReader</strong> 因为比较清晰明了，这几个方法很重要，如下图所示：<br><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce18.png" alt="LineRecordReader的父类RecordReader"><br>LineRecordReader的父类RecordReader</li>
+<li><strong>返回LineRecordReader，看一看大致有哪些具体实现</strong><br><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce19.png" alt="返回LineRecordReader"><br>返回LineRecordReader</li>
+<li>看一看几个重要的方法，如下图源码每次调用nextKeyValue()时，value表示当前行的内容，key表示已经读取后的位置具体实现：<br><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce20.png" alt="LineRecordReader的nextKeyValue具体的实现"><br>LineRecordReader的nextKeyValue具体的实现</li>
+<li>在MR框架中，有很多InputFormat和FileInputFormat的实现类。比如<strong>SequenceFileInputFormat</strong>，<strong>NLineInputFormat</strong>、<strong>DBInputFormat等</strong>。<strong>DBInputFormat</strong>表示从SQL表中读取数据，可以看出我们不仅仅是从HDFS中取数据作为输入还可以从数据库中读取数据，来一个简单的截图：<br><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce21.png" alt="InputFormat的具体实现DBInputFormat"><br>InputFormat的具体实现DBInputFormat</li>
+</ol>
+<h1 id="执行map-task"><a href="#执行map-task" class="headerlink" title="执行map task"></a>执行map task</h1><ol>
+<li>在我们写代码的时候，可以覆盖<strong>setup</strong>、<strong>map</strong>、<strong>cleanup</strong>方法；</li>
+<li><p>框架调用map的时候，是通过反射的方式产生的，然后调用实例化对象中的run()。</p>
+<p><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce22.png" alt="Mapper类"></p>
+<p>Mapper类</p>
+</li>
+<li>注意我们<strong>Mapper类</strong>的<strong>write()</strong>方法，其实是调用了<code>org.apache.hadoop.mapreduce.Mapper.Context</code></li>
+</ol>
+<ul>
+<li><p>程序真正执行时，是启动了一个<strong>YarnChild类</strong>，下面我们来分析框架如何调用map task或者reduce task。</p>
+<p><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce23.png" alt="YarnChild类的run()方法"></p>
+<p>YarnChild类的run()方法</p>
+</li>
+</ul>
+<ol>
+<li><p><strong>看一下taskFinal的一个实现类是MapTask</strong>。<br><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce24.png" alt="taskFinal的一个实现类是MapTask"></p>
+<p>taskFinal的一个实现类是MapTask</p>
+</li>
+<li><p>继续分析下面的<strong>runNewMapper()</strong>方法</p>
+<p><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce25.png" alt="下面跳过一部分代码截图......"></p>
+<p>下面跳过一部分代码截图……</p>
+<p>[<img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce26.png" alt="runNewMapper()方法">]</p>
+<p>runNewMapper()方法<br>在这里可以看出：</p>
+<blockquote>
+<p>如果没有reduce task，那么map直接把输出。如果有，创建排序的输出。<br>在这里，output实际上是WordCountMapper类中的map()方法里面的context.write()实际调用，就是在output中调用的。</p>
+</blockquote>
+</li>
+<li><p>接下来分析<strong>NewOutputCollector类的实现的构造方法，partitioner类是在这里实例化的</strong>。</p>
+<p><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce27.png" alt="NewOutputCollector类的实现的构造方法"></p>
+<p>NewOutputCollector类的实现的构造方法</p>
+</li>
+</ol>
+<h1 id="分区"><a href="#分区" class="headerlink" title="分区"></a>分区</h1><ul>
+<li><p>我们还是在NewOutputCollector方法里主要看看write(…)方法。</p>
+<p><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce28.png" alt="NewOutputCollector的write(...)方法"></p>
+<p>NewOutputCollector的write(…)方法</p>
+</li>
+<li><p><strong>当在WordCountMapper类的map()方法中调用context.write(…)</strong>的时候，实际上是调用<strong>collector.collect(…)</strong> ，在这个方法的形参中，第三个参数就是分区。</p>
+<p><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce29.png" alt="collector.collect(...)方法"></p>
+<p>collector.collect(…)方法</p>
+</li>
+<li><p>在这里collector的实现类是MapOutputBuffer类。<br><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce30.png" alt="常见异常，以及SpillThread"></p>
+<p>常见异常，以及SpillThread</p>
+</li>
+</ul>
+<h1 id="排序"><a href="#排序" class="headerlink" title="排序"></a>排序</h1><ul>
+<li><p>我们就到了SpillThread类，接下来分析SpillThread类，直接看run()方法，代码比较简洁：</p>
+<p><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce31.png" alt="SpillThread类的run()方法"></p>
+<p>SpillThread类的run()方法</p>
+</li>
+</ul>
+<ol>
+<li><p>继续分析<strong>sortAndSpill()</strong>方法，可以看到，在spill之前，会先进行sort操作。<br><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce32.png" alt="sortAndSpill()方法"></p>
+<p>sortAndSpill()方法</p>
+</li>
+</ol>
+<h1 id="合并"><a href="#合并" class="headerlink" title="合并"></a>合并</h1><ul>
+<li><p>现在我们任然在<strong>SpillThread类</strong>里面，继续看下面的代码：</p>
+<p><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce33.png" alt="SpillThread类里面的合并逻辑代码部分"></p>
+<p>SpillThread类里面的合并逻辑代码部分<br>上面的代码说明：如果没有combiner，直接把写入到磁盘。如果有combiner，先执行combiner再写入磁盘。</p>
+</li>
+</ul>
+<h1 id="写入磁盘-spill"><a href="#写入磁盘-spill" class="headerlink" title="写入磁盘(spill)"></a>写入磁盘(spill)</h1><ul>
+<li><p><strong>写入磁盘(spill)</strong>，实际上是通过调用<strong>InMemoryWriter</strong>来实现的。</p>
+<p><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce34.png" alt="写入磁盘(spill)"></p>
+<p>写入磁盘(spill)</p>
+</li>
+</ul>
+<h1 id="reduce的全过程"><a href="#reduce的全过程" class="headerlink" title="reduce的全过程"></a>reduce的全过程</h1><ul>
+<li><p>上面已经把map的过程走完了，截图真累！！下面我们简单看看Reduce吧！Reducer和Mapper很类似,这里就不一一解释了：<br><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce35.png" alt="Reducer和Mapper很类似"></p>
+<p>Reducer和Mapper很类似</p>
+</li>
+<li><p><strong>直奔主题ReduceTask的run()方法</strong></p>
+<p><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce36.png" alt="img"></p>
+</li>
+<li><p>继续向下看代码。<br><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce37.png" alt="运行shuffer代码逻辑"></p>
+<p>运行shuffer代码逻辑</p>
+</li>
+<li><p>查看shuffleComsumerPlugin.run()的时候，跳转到Shuffle类中。</p>
+<p><img src="http://img.xiaoxiaomo.com/blog%2Fimg%2Fmapreduce38.png" alt="img"></p>
+</li>
+</ul>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Hadoop/" rel="tag"># Hadoop</a>
+          
+            <a href="/tags/MapReduce/" rel="tag"># MapReduce</a>
+          
+        </div>
+      
+
+      
+        
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/05/20/LVS FULLNAT部署问题/" rel="next" title="LVS FULLNAT RealServer安装">
+                <i class="fa fa-chevron-left"></i> LVS FULLNAT RealServer安装
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/05/26/2017-05-26使用filebeats收集Docker日志/" rel="prev" title="使用filebeats收集Docker日志">
+                使用filebeats收集Docker日志 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="cloud-tie-wrapper" class="cloud-tie-wrapper"></div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.png"
+               alt="[object Object]" />
+          <p class="site-author-name" itemprop="name">[object Object]</p>
+           
+              <p class="site-description motion-element" itemprop="description">Hadoop, Spark, OpenStack，Docker</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">29</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">12</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">12</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/iclouding" target="_blank" title="Github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  Github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.cnblogs.com/icloud/" target="_blank" title="博客园">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  博客园
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+        
+        
+    <div class="links-of-blogroll motion-element links-of-blogroll-block">
+      <div class="links-of-blogroll-title">
+        <!-- modify icon to fire by szw -->
+        <i class="fa fa-history fa-" aria-hidden="true"></i>
+        近期文章
+      </div>
+          <ul class="links-of-blogroll-list">
+            
+            
+              <li>
+                <a href="/2020/01/01/2017-05-27博客收录/" title="博客收录" target="_blank">博客收录</a>
+              </li>
+            
+              <li>
+                <a href="/2017/12/08/Hadoop序列化/" title="Hadoop序列化" target="_blank">Hadoop序列化</a>
+              </li>
+            
+              <li>
+                <a href="/2017/09/29/2017-09-29Superset数据分析与使用/" title="2017-09-29Superset数据分析与使用" target="_blank">2017-09-29Superset数据分析与使用</a>
+              </li>
+            
+              <li>
+                <a href="/2017/09/22/2017-09-22Spark1-X和2-X编译部署/" title="2017-09-22Spark1.X和2.X编译部署" target="_blank">2017-09-22Spark1.X和2.X编译部署</a>
+              </li>
+            
+              <li>
+                <a href="/2017/09/19/2017-09-19Spark机器学习之聚类/" title="2017-09-19Spark机器学习之聚类" target="_blank">2017-09-19Spark机器学习之聚类</a>
+              </li>
+            
+              </ul>
+            </div>
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Hadoop–MapReduce源码分析（转）"><span class="nav-number">1.</span> <span class="nav-text">Hadoop–MapReduce源码分析（转）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#MapReduce运行机制"><span class="nav-number">1.1.</span> <span class="nav-text">MapReduce运行机制</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#各个角色实体"><span class="nav-number">1.1.1.</span> <span class="nav-text">各个角色实体</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#时间先后顺序"><span class="nav-number">1.1.2.</span> <span class="nav-text">时间先后顺序</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Job提交作业"><span class="nav-number">2.</span> <span class="nav-text">Job提交作业</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#submit方法"><span class="nav-number">2.1.</span> <span class="nav-text">submit方法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#submitJobInternal"><span class="nav-number">2.1.1.</span> <span class="nav-text">submitJobInternal</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#writeSplits"><span class="nav-number">2.1.2.</span> <span class="nav-text">writeSplits</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#InputFormat"><span class="nav-number">2.1.3.</span> <span class="nav-text">InputFormat</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#提交JOB到RM"><span class="nav-number">2.1.4.</span> <span class="nav-text">提交JOB到RM</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#monitorAndPrintJob"><span class="nav-number">2.2.</span> <span class="nav-text">monitorAndPrintJob</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#读取InputSplit中的数据"><span class="nav-number">3.</span> <span class="nav-text">读取InputSplit中的数据</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#执行map-task"><span class="nav-number">4.</span> <span class="nav-text">执行map task</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#分区"><span class="nav-number">5.</span> <span class="nav-text">分区</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#排序"><span class="nav-number">6.</span> <span class="nav-text">排序</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#合并"><span class="nav-number">7.</span> <span class="nav-text">合并</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#写入磁盘-spill"><span class="nav-number">8.</span> <span class="nav-text">写入磁盘(spill)</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#reduce的全过程"><span class="nav-number">9.</span> <span class="nav-text">reduce的全过程</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">iclouding</span>
+</div>
+
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.1"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+    
+    <script>
+      var cloudTieConfig = {
+        url: document.location.href, 
+        sourceId: "",
+        productKey: "e5e46c90da2d400e9a09f945448bb299",
+        target: "cloud-tie-wrapper"
+      };
+    </script>
+    <script src="https://img1.ws.126.net/f2e/tie/yun/sdk/loader.js"></script>
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("ExxAsfadHnGbfXNeH3Y3EoEQ-gzGzoHsz", "scr6biItx0UTfQik4OWLoR36");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  <script type="text/javascript" src="/js/src/js.cookie.js?v=5.1.1"></script>
+  <script type="text/javascript" src="/js/src/scroll-cookie.js?v=5.1.1"></script>
+
+
+  
+
+</body>
+</html>

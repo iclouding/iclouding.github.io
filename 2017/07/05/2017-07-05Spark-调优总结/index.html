@@ -1,0 +1,1002 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+  
+  
+  <link rel="stylesheet" media="all" href="/lib/Han/dist/han.min.css?v=3.3">
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Spark," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.1" />
+
+
+
+
+
+
+<meta name="description" content="近期看了很多Spark调优的一些文章，博客，稍微总结一下  总体来看，Spark调优的思路，可以按照下述流程：  资源调优 算子调优 Shuffle调优 数据倾斜 JVM调优  资源调优王道 就是分配更多的资源。 资源有几种：Executor的数量，每个Executor的CPU和内存；Driver的CPU和内存 怎么分配： 在我们在生产环境中，提交spark作业时，用的spark-submits">
+<meta name="keywords" content="Spark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spark 调优总结">
+<meta property="og:url" content="http://yoursite.com/2017/07/05/2017-07-05Spark-调优总结/index.html">
+<meta property="og:site_name" content="大数据部落">
+<meta property="og:description" content="近期看了很多Spark调优的一些文章，博客，稍微总结一下  总体来看，Spark调优的思路，可以按照下述流程：  资源调优 算子调优 Shuffle调优 数据倾斜 JVM调优  资源调优王道 就是分配更多的资源。 资源有几种：Executor的数量，每个Executor的CPU和内存；Driver的CPU和内存 怎么分配： 在我们在生产环境中，提交spark作业时，用的spark-submits">
+<meta property="og:updated_time" content="2017-12-08T05:13:49.236Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Spark 调优总结">
+<meta name="twitter:description" content="近期看了很多Spark调优的一些文章，博客，稍微总结一下  总体来看，Spark调优的思路，可以按照下述流程：  资源调优 算子调优 Shuffle调优 数据倾斜 JVM调优  资源调优王道 就是分配更多的资源。 资源有几种：Executor的数量，每个Executor的CPU和内存；Driver的CPU和内存 怎么分配： 在我们在生产环境中，提交spark作业时，用的spark-submits">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"always","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2017/07/05/2017-07-05Spark-调优总结/"/>
+
+
+
+
+
+  <title>Spark 调优总结 | 大数据部落</title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">大数据部落</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">Hadoop, Spark, OpenStack，Docker</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/07/05/2017-07-05Spark-调优总结/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="[object Object]">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="大数据部落">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Spark 调优总结</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-07-05T10:37:54+08:00">
+                2017-07-05
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2017-12-08T13:13:49+08:00">
+                2017-12-08
+              </time>
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a class="cloud-tie-join-count" href="/2017/07/05/2017-07-05Spark-调优总结/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count join-count" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/2017/07/05/2017-07-05Spark-调优总结/" class="leancloud_visitors" data-flag-title="Spark 调优总结">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数 </span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    <div class="post-body han-init-context" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>近期看了很多Spark调优的一些文章，博客，稍微总结一下</p>
+</blockquote>
+<p>总体来看，Spark调优的思路，可以按照下述流程：</p>
+<ol>
+<li>资源调优</li>
+<li>算子调优</li>
+<li>Shuffle调优</li>
+<li>数据倾斜</li>
+<li>JVM调优</li>
+</ol>
+<h2 id="资源调优"><a href="#资源调优" class="headerlink" title="资源调优"></a>资源调优</h2><p>王道 就是分配更多的资源。</p>
+<p>资源有几种：<strong>Executor的数量，每个Executor的CPU和内存；Driver的CPU和内存</strong></p>
+<p>怎么分配：</p>
+<p>在我们在生产环境中，提交spark作业时，用的spark-submitshell脚本，里面调整对应的参数</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">/usr/<span class="built_in">local</span>/spark/bin/spark-submit \</div><div class="line">--class cn.spark.sparktest.core.WordCountCluster \</div><div class="line">--num-executors 3 \  <span class="comment"># 配置executor的数量</span></div><div class="line">--driver-memory 100m \  <span class="comment"># 配置driver的内存（影响不大）</span></div><div class="line">--executor-memory 100m \  <span class="comment"># 配置每个executor的内存大小</span></div><div class="line">--executor-cores 3 \  <span class="comment"># 配置每个executor的cpu core数量</span></div><div class="line">/usr/<span class="built_in">local</span>/SparkTest-0.0.1-SNAPSHOT-jar-with-dependencies.jar\</div></pre></td></tr></table></figure>
+<p>3、调节到多大，算是最大呢？</p>
+<p>第一种，SparkStandalone，公司集群上，搭建了一套Spark集群，你心里应该清楚每台机器还能够给你使用的，大概有多少内存，多少cpu core；那么，设置的时候，就根据这个实际的情况，去调节每个spark作业的资源分配。比如说你的每台机器能够给你使用4G内存，2个cpucore；20台机器；executor，20；4G内存，2个cpucore，平均每个executor。</p>
+<p>第二种，Yarn。资源队列。资源调度。应该去查看，你的spark作业，要提交到的<strong>资源队列</strong>，大概有多少资源？500G内存，100个cpu core；executor，50；10G内存，2个cpucore，平均每个executor。</p>
+<p><strong>一个原则，你能使用的资源有多大，就尽量去调节到最大的大小（executor的数量，几十个到上百个不等；executor内存；executorcpu core）</strong></p>
+<p>另外，还要提高并行度，一味的增大资源，也可能根本就没那么多job：</p>
+<blockquote>
+<p>Spark中每个action，都会触发一个job，每个job会在Shuffle的时候，拆分出一个stage</p>
+<p>并行度指的就是，每个stage中task的数量，代表了Spark作业各个阶段（stage）的并行度</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">task数量，至少设置成和Spark Application的总CPU core数量相同</div><div class="line">官方推荐的是，task数量设置成总CPU Core的2~3倍</div><div class="line">	因为每个task运行时间是不同的，有的快，有的慢，而设成成数量相同，还是会导致资源浪费。而如果设置了2~3倍，一个task运行完毕，另外一个就运行了，尽量不让cpu core停下来。</div><div class="line">如何设置：</div><div class="line">	spark.default.parallelism  (根据总core设置)</div><div class="line">	conf.set(&quot;spark.default.parallelism&quot;, &quot;500&quot;)</div></pre></td></tr></table></figure>
+<h2 id="算子调优"><a href="#算子调优" class="headerlink" title="算子调优"></a>算子调优</h2><h3 id="1-重复使用的RDD要缓存"><a href="#1-重复使用的RDD要缓存" class="headerlink" title="1. 重复使用的RDD要缓存"></a>1. 重复使用的RDD要缓存</h3><p>原理：每次对RDD执行算子，都会重新从源头重新计算一次。因此缓存起来可以不需要重复计算，特别是多次使用的RDD。</p>
+<p>持久化的级别有以下几种：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">持久化级别</th>
+<th style="text-align:left">含义解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">MEMORY_ONLY</td>
+<td style="text-align:left">使用未序列化的Java对象格式，将数据保存在内存中。如果内存不够存放所有的数据，则数据可能就不会进行持久化。那么下次对这个RDD执行算子操作时，那些没有被持久化的数据，需要从源头处重新计算一遍。这是默认的持久化策略，使用cache()方法时，实际就是使用的这种持久化策略。</td>
+</tr>
+<tr>
+<td style="text-align:center">MEMORY_AND_DISK</td>
+<td style="text-align:left">使用未序列化的Java对象格式，优先尝试将数据保存在内存中。如果内存不够存放所有的数据，会将数据写入磁盘文件中，下次对这个RDD执行算子时，持久化在磁盘文件中的数据会被读取出来使用。</td>
+</tr>
+<tr>
+<td style="text-align:center">MEMORY_ONLY_SER</td>
+<td style="text-align:left">基本含义同MEMORY_ONLY。唯一的区别是，会将RDD中的数据进行序列化，RDD的每个partition会被序列化成一个字节数组。这种方式更加节省内存，从而可以避免持久化的数据占用过多内存导致频繁GC。</td>
+</tr>
+<tr>
+<td style="text-align:center">MEMORY_AND_DISK_SER</td>
+<td style="text-align:left">基本含义同MEMORY_AND_DISK。唯一的区别是，会将RDD中的数据进行序列化，RDD的每个partition会被序列化成一个字节数组。这种方式更加节省内存，从而可以避免持久化的数据占用过多内存导致频繁GC。</td>
+</tr>
+<tr>
+<td style="text-align:center">DISK_ONLY</td>
+<td style="text-align:left">使用未序列化的Java对象格式，将数据全部写入磁盘文件中。</td>
+</tr>
+<tr>
+<td style="text-align:center">MEMORY_ONLY_2, MEMORY_AND_DISK_2, 等等.</td>
+<td style="text-align:left">对于上述任意一种持久化策略，如果加上后缀_2，代表的是将每个持久化的数据，都复制一份副本，并将副本保存到其他节点上。这种基于副本的持久化机制主要用于进行容错。假如某个节点挂掉，节点的内存或磁盘中的持久化数据丢失了，那么后续对RDD计算时还可以使用该数据在其他节点上的副本。如果没有副本的话，就只能将这些数据从源头处重新计算一遍了。</td>
+</tr>
+</tbody>
+</table>
+<h4 id="如何选择一种最合适的持久化策略"><a href="#如何选择一种最合适的持久化策略" class="headerlink" title="如何选择一种最合适的持久化策略"></a>如何选择一种最合适的持久化策略</h4><ul>
+<li>默认情况下，性能最高的当然是MEMORY_ONLY，但前提是你的内存必须足够足够大，可以绰绰有余地存放下整个RDD的所有数据。因为不进行序列化与反序列化操作，就避免了这部分的性能开销；对这个RDD的后续算子操作，都是基于纯内存中的数据的操作，不需要从磁盘文件中读取数据，性能也很高；而且不需要复制一份数据副本，并远程传送到其他节点上。但是这里必须要注意的是，在实际的生产环境中，恐怕能够直接用这种策略的场景还是有限的，如果RDD中数据比较多时（比如几十亿），直接用这种持久化级别，会导致JVM的OOM内存溢出异常。</li>
+<li>如果使用MEMORY_ONLY级别时发生了内存溢出，那么建议尝试使用MEMORY_ONLY_SER级别。该级别会将RDD数据序列化后再保存在内存中，此时每个partition仅仅是一个字节数组而已，大大减少了对象数量，并降低了内存占用。这种级别比MEMORY_ONLY多出来的性能开销，主要就是序列化与反序列化的开销。但是后续算子可以基于纯内存进行操作，因此性能总体还是比较高的。此外，可能发生的问题同上，如果RDD中的数据量过多的话，还是可能会导致OOM内存溢出的异常。</li>
+<li>如果纯内存的级别都无法使用，那么建议使用MEMORY_AND_DISK_SER策略，而不是MEMORY_AND_DISK策略。因为既然到了这一步，就说明RDD的数据量很大，内存无法完全放下。序列化后的数据比较少，可以节省内存和磁盘的空间开销。同时该策略会优先尽量尝试将数据缓存在内存中，内存缓存不下才会写入磁盘。</li>
+<li>通常不建议使用DISK_ONLY和后缀为_2的级别：因为完全基于磁盘文件进行数据的读写，会导致性能急剧降低，有时还不如重新计算一次所有RDD。后缀为_2的级别，必须将所有数据都复制一份副本，并发送到其他节点上，数据复制以及网络传输会导致较大的性能开销，除非是要求作业的高可用性，否则不建议使用。</li>
+</ul>
+<h3 id="尽量避免使用Shuffle算子"><a href="#尽量避免使用Shuffle算子" class="headerlink" title="尽量避免使用Shuffle算子"></a>尽量避免使用Shuffle算子</h3><p>比如如果小表和大表的join操作，可以广播小表，使得Shuffle变成map操作。</p>
+<h4 id="mapPartition算子替换map"><a href="#mapPartition算子替换map" class="headerlink" title="mapPartition算子替换map"></a>mapPartition算子替换map</h4><h4 id="filter过后使用coalesce减少分区"><a href="#filter过后使用coalesce减少分区" class="headerlink" title="filter过后使用coalesce减少分区"></a>filter过后使用coalesce减少分区</h4><h4 id="使用foreachPartitions替代foreach"><a href="#使用foreachPartitions替代foreach" class="headerlink" title="使用foreachPartitions替代foreach"></a>使用foreachPartitions替代foreach</h4><h4 id="使用map-side预聚合的shuffle操作"><a href="#使用map-side预聚合的shuffle操作" class="headerlink" title="使用map-side预聚合的shuffle操作"></a>使用map-side预聚合的shuffle操作</h4><p>比如使用reduceByKey/aggregateByKey替代groupByKey</p>
+<h3 id="使用Kryo优化序列化性能"><a href="#使用Kryo优化序列化性能" class="headerlink" title="使用Kryo优化序列化性能"></a>使用Kryo优化序列化性能</h3><ul>
+<li>在算子函数中使用到外部变量时，该变量会被序列化后进行网络传输（见“原则七：广播大变量”中的讲解）。</li>
+<li>将自定义的类型作为RDD的泛型类型时（比如JavaRDD，Student是自定义类型），所有自定义类型对象，都会进行序列化。因此这种情况下，也要求自定义的类必须实现Serializable接口。</li>
+<li>使用可序列化的持久化策略时（比如MEMORY_ONLY_SER），Spark会将RDD中的每个partition都序列化成一个大的字节数组。</li>
+</ul>
+<p>对于这三种出现序列化的地方，我们都可以通过使用Kryo序列化类库，来优化序列化和反序列化的性能。</p>
+<h2 id="Shuffle调优"><a href="#Shuffle调优" class="headerlink" title="Shuffle调优"></a>Shuffle调优</h2><p>Shuffle默认是sort Shuffle，但是sort Shuffle分为两种：普通的sort和bypass的sort。</p>
+<p><strong>Shuffle的各个内存占比的调优</strong></p>
+<p>调整spark中Execution部分和memory部分的内存占比。</p>
+<h2 id="数据倾斜"><a href="#数据倾斜" class="headerlink" title="数据倾斜"></a>数据倾斜</h2><p>数据倾斜的原因或者情况很多，应该具体问题具体分析。</p>
+<p>方法：增大Shuffle操作的并行度，尝试缓解数据倾斜的情况。</p>
+<p>场景：</p>
+<ol>
+<li>聚合类的shuflle。比如reduceByKey。采用局部聚合和全局聚合。局部聚合：给每个key打上一个随机前缀，比如10以内随机数，这样key就和之前的不同了，执行一次reduceByKey的操作。全局聚合：将每个key的随机前缀去掉，然后再次执行一次全局聚合。可以有效解决数据倾斜问题。</li>
+<li>大表和小表的join，可以将小表进行广播，这样可以从根本上杜绝shuflle的数据倾斜，使用map操作代替Shuffle操作。</li>
+<li>如果不是大表join小表，而是两张表都很大，那么方法2就不行了。那么就需要采样倾斜的key分拆join了。</li>
+</ol>
+<p>先使用sample算子采样一份key，计算数据量最大的几个。然后对倾斜的rdd进行分拆，拆为小部分倾斜的key和大部分没有倾斜的key。将小部分倾斜的key打上前缀，打散这些倾斜的key。</p>
+<p>然后将join的另一个rdd也过滤出来倾斜的几个key，将这部分单独的rdd每条数据都膨胀n倍。</p>
+<p>然后join操作就被分拆为了两部分：一个是一部分打了随机数的倾斜的key，另一部分是膨胀了n倍的key，join得到一个结果，</p>
+<p>还有一个就是，去除倾斜的key，以及第二个rdd相join。最后将这两部分再union起来就行了。</p>
+<p>如果采样的key特别多的话，这种方式就不适合了。因为分拆一个 rdd出来，还是有一堆倾斜的rdd。因此这种需要对整个rdd加上随机数，以及对第二个rdd膨胀n倍。需要大量的资源。</p>
+<h2 id="JVM调优"><a href="#JVM调优" class="headerlink" title="JVM调优"></a>JVM调优</h2>
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Spark/" rel="tag"># Spark</a>
+          
+        </div>
+      
+
+      
+        
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/06/19/2017-06-19无名小路/" rel="next" title="无名小路">
+                <i class="fa fa-chevron-left"></i> 无名小路
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/07/21/2017-07-21同步各种仓库/" rel="prev" title="同步各种仓库">
+                同步各种仓库 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="cloud-tie-wrapper" class="cloud-tie-wrapper"></div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.png"
+               alt="[object Object]" />
+          <p class="site-author-name" itemprop="name">[object Object]</p>
+           
+              <p class="site-description motion-element" itemprop="description">Hadoop, Spark, OpenStack，Docker</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">29</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">12</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">12</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/iclouding" target="_blank" title="Github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  Github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.cnblogs.com/icloud/" target="_blank" title="博客园">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  博客园
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+        
+        
+    <div class="links-of-blogroll motion-element links-of-blogroll-block">
+      <div class="links-of-blogroll-title">
+        <!-- modify icon to fire by szw -->
+        <i class="fa fa-history fa-" aria-hidden="true"></i>
+        近期文章
+      </div>
+          <ul class="links-of-blogroll-list">
+            
+            
+              <li>
+                <a href="/2020/01/01/2017-05-27博客收录/" title="博客收录" target="_blank">博客收录</a>
+              </li>
+            
+              <li>
+                <a href="/2017/12/08/Hadoop序列化/" title="Hadoop序列化" target="_blank">Hadoop序列化</a>
+              </li>
+            
+              <li>
+                <a href="/2017/09/29/2017-09-29Superset数据分析与使用/" title="2017-09-29Superset数据分析与使用" target="_blank">2017-09-29Superset数据分析与使用</a>
+              </li>
+            
+              <li>
+                <a href="/2017/09/22/2017-09-22Spark1-X和2-X编译部署/" title="2017-09-22Spark1.X和2.X编译部署" target="_blank">2017-09-22Spark1.X和2.X编译部署</a>
+              </li>
+            
+              <li>
+                <a href="/2017/09/19/2017-09-19Spark机器学习之聚类/" title="2017-09-19Spark机器学习之聚类" target="_blank">2017-09-19Spark机器学习之聚类</a>
+              </li>
+            
+              </ul>
+            </div>
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#资源调优"><span class="nav-number">1.</span> <span class="nav-text">资源调优</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#算子调优"><span class="nav-number">2.</span> <span class="nav-text">算子调优</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-重复使用的RDD要缓存"><span class="nav-number">2.1.</span> <span class="nav-text">1. 重复使用的RDD要缓存</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#如何选择一种最合适的持久化策略"><span class="nav-number">2.1.1.</span> <span class="nav-text">如何选择一种最合适的持久化策略</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#尽量避免使用Shuffle算子"><span class="nav-number">2.2.</span> <span class="nav-text">尽量避免使用Shuffle算子</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#mapPartition算子替换map"><span class="nav-number">2.2.1.</span> <span class="nav-text">mapPartition算子替换map</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#filter过后使用coalesce减少分区"><span class="nav-number">2.2.2.</span> <span class="nav-text">filter过后使用coalesce减少分区</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#使用foreachPartitions替代foreach"><span class="nav-number">2.2.3.</span> <span class="nav-text">使用foreachPartitions替代foreach</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#使用map-side预聚合的shuffle操作"><span class="nav-number">2.2.4.</span> <span class="nav-text">使用map-side预聚合的shuffle操作</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#使用Kryo优化序列化性能"><span class="nav-number">2.3.</span> <span class="nav-text">使用Kryo优化序列化性能</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Shuffle调优"><span class="nav-number">3.</span> <span class="nav-text">Shuffle调优</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#数据倾斜"><span class="nav-number">4.</span> <span class="nav-text">数据倾斜</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#JVM调优"><span class="nav-number">5.</span> <span class="nav-text">JVM调优</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">iclouding</span>
+</div>
+
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.1"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+    
+    <script>
+      var cloudTieConfig = {
+        url: document.location.href, 
+        sourceId: "",
+        productKey: "e5e46c90da2d400e9a09f945448bb299",
+        target: "cloud-tie-wrapper"
+      };
+    </script>
+    <script src="https://img1.ws.126.net/f2e/tie/yun/sdk/loader.js"></script>
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("ExxAsfadHnGbfXNeH3Y3EoEQ-gzGzoHsz", "scr6biItx0UTfQik4OWLoR36");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  <script type="text/javascript" src="/js/src/js.cookie.js?v=5.1.1"></script>
+  <script type="text/javascript" src="/js/src/scroll-cookie.js?v=5.1.1"></script>
+
+
+  
+
+</body>
+</html>

@@ -1,0 +1,1033 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+  
+  
+  <link rel="stylesheet" media="all" href="/lib/Han/dist/han.min.css?v=3.3">
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Java,多线程," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.1" />
+
+
+
+
+
+
+<meta name="description" content="AbstractQueuedSynchronizer源码解析注：本文转自http://www.jianshu.com/p/e7659436538b# AbstractQueuedSynchronizer 定义AbstractQueuedSynchronizer 是JUC 中通过 Sync Queue(并发安全的 CLH Queue), Condition Queue(普通的 list) , vol">
+<meta name="keywords" content="Java,多线程">
+<meta property="og:type" content="article">
+<meta property="og:title" content="AbstractQueuedSynchronizer源码解析">
+<meta property="og:url" content="http://yoursite.com/2017/05/15/AbstractQueuedSynchronizer源码解析/index.html">
+<meta property="og:site_name" content="大数据部落">
+<meta property="og:description" content="AbstractQueuedSynchronizer源码解析注：本文转自http://www.jianshu.com/p/e7659436538b# AbstractQueuedSynchronizer 定义AbstractQueuedSynchronizer 是JUC 中通过 Sync Queue(并发安全的 CLH Queue), Condition Queue(普通的 list) , vol">
+<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/263562-328067a54dfdb18f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/263562-fd3b56ad835e9f95.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/263562-c520b712aec0a7e4.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:updated_time" content="2017-12-08T05:13:49.288Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="AbstractQueuedSynchronizer源码解析">
+<meta name="twitter:description" content="AbstractQueuedSynchronizer源码解析注：本文转自http://www.jianshu.com/p/e7659436538b# AbstractQueuedSynchronizer 定义AbstractQueuedSynchronizer 是JUC 中通过 Sync Queue(并发安全的 CLH Queue), Condition Queue(普通的 list) , vol">
+<meta name="twitter:image" content="http://upload-images.jianshu.io/upload_images/263562-328067a54dfdb18f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"always","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2017/05/15/AbstractQueuedSynchronizer源码解析/"/>
+
+
+
+
+
+  <title>AbstractQueuedSynchronizer源码解析 | 大数据部落</title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">大数据部落</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">Hadoop, Spark, OpenStack，Docker</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/05/15/AbstractQueuedSynchronizer源码解析/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="[object Object]">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="大数据部落">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">AbstractQueuedSynchronizer源码解析</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-15T16:10:00+08:00">
+                2017-05-15
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2017-12-08T13:13:49+08:00">
+                2017-12-08
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java多线程/" itemprop="url" rel="index">
+                    <span itemprop="name">Java多线程</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a class="cloud-tie-join-count" href="/2017/05/15/AbstractQueuedSynchronizer源码解析/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count join-count" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/2017/05/15/AbstractQueuedSynchronizer源码解析/" class="leancloud_visitors" data-flag-title="AbstractQueuedSynchronizer源码解析">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数 </span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    <div class="post-body han-init-context" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="AbstractQueuedSynchronizer源码解析"><a href="#AbstractQueuedSynchronizer源码解析" class="headerlink" title="AbstractQueuedSynchronizer源码解析"></a>AbstractQueuedSynchronizer源码解析</h1><p>注：本文转自<a href="http://www.jianshu.com/p/e7659436538b#" target="_blank" rel="external">http://www.jianshu.com/p/e7659436538b#</a></p>
+<h2 id="AbstractQueuedSynchronizer-定义"><a href="#AbstractQueuedSynchronizer-定义" class="headerlink" title="AbstractQueuedSynchronizer 定义"></a>AbstractQueuedSynchronizer 定义</h2><p>AbstractQueuedSynchronizer 是JUC 中通过 Sync Queue(并发安全的 CLH Queue), Condition Queue(普通的 list) , volatile 变量 state 提供的 控制线程获取统一资源(state) 的 Synchronized 工具.</p>
+<p>主要特点:</p>
+<ol>
+<li>内部含有两条 Queue(Sync Queue, Condition Queue), 这两条 Queue 后面会详细说明.</li>
+<li>AQS 内部定义获取锁(acquire), 释放锁(release)的主逻辑, 子类实现响应的模版方法即可</li>
+<li>支持共享和独占两种模式(共享模式时只用 Sync Queue, 独占模式有时只用 Sync Queue, 但若涉及 Condition, 则还有 Condition Queue); 独占是排他的.</li>
+<li>支持 不响应中断获取独占锁(acquire), 响应中断获取独占锁(acquireInterruptibly), 超时获取独占锁(tryAcquireNanos); 不响应中断获取共享锁(acquireShared), 响应中断获取共享锁(acquireSharedInterruptibly), 超时获取共享锁(tryAcquireSharedNanos);</li>
+<li>在子类的 tryAcquire, tryAcquireShared 中实现公平与非公平的区分</li>
+</ol>
+<p>而一般的lock获取释放流程如下</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line"># lock 获取</div><div class="line">Acquire:</div><div class="line">while(!tryAcquire(arg))&#123; // tryAcquire交由子类来实现, 改变 AQS 的state的值</div><div class="line">   1. tryAcquire 获取lock没成功, 则入 Sync Queue</div><div class="line">   2. 若当前节点是 head.next, 则再次尝试获取一下lock (tryAcquire)</div><div class="line">   3. 获取 lock 失败, 则改变 前继节点的 waitStatus 的值(变成SIGNAL), 进行 blocked</div><div class="line">&#125;</div><div class="line"></div><div class="line"># lock 释放</div><div class="line">Release:</div><div class="line">if(tryRelease(arg))&#123; // tryRelease交由子类来实现, 改变 AQS 的state的值</div><div class="line">   1. 判断 lock 是否释放彻底</div><div class="line">   2. 若自己被标记为SIGNAL, 则唤醒后继节点, 通知其去获取 AQS 中 state 的值</div><div class="line">   3. 将自己的 waitStatus 进行复位到 0</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>整个 AQS 非为以下几部分</p>
+<ol>
+<li>Node 节点, 用于存放获取线程的节点, 存在于 Sync Queue, Condition Queue, 这些节点主要的区分在于 waitStatus 的值(下面会详细叙述)</li>
+<li>Condition Queue, 这个队列是用于独占模式中, 只有用到 Condition.awaitXX 时才会将 node加到 tail 上(PS: 在使用 Condition的前提是已经获取 Lock)</li>
+<li>Sync Queue, 独占 共享的模式中均会使用到的存放 Node 的 CLH queue(主要特点是, 队列中总有一个 dummy 节点, 后继节点获取锁的条件由前继节点决定, 前继节点在释放 lock 时会唤醒sleep中的后继节点)</li>
+<li>ConditionObject, 用于独占的模式, 主要是线程释放lock, 加入 Condition Queue, 并进行相应的 signal 操作, 详情点击这里 <a href="http://www.jianshu.com/p/52089c4eefdd" target="_blank" rel="external">Java 8 源码分析 Condition</a></li>
+<li>独占的获取lock (acquire, release), 例如 ReentrantLock 就是使用这种, 详情点击这里<a href="http://www.jianshu.com/p/3f3417dbcac4" target="_blank" rel="external">Java 8 源码分析 ReentrantLock</a></li>
+<li><p>共享的获取lock (acquireShared, releaseShared), 例如 <a href="http://www.jianshu.com/p/6923c126e762" target="_blank" rel="external">ReeantrantReadWriteLock</a>,<a href="http://www.jianshu.com/p/bb40a8073111" target="_blank" rel="external">Semaphore</a>, <a href="http://www.jianshu.com/p/a042cf7a261c" target="_blank" rel="external">CountDownLatch</a><br>​</p>
+<h2 id="AbstractQueuedSynchronizer-内部类-Node"><a href="#AbstractQueuedSynchronizer-内部类-Node" class="headerlink" title="AbstractQueuedSynchronizer 内部类 Node"></a>AbstractQueuedSynchronizer 内部类 Node</h2></li>
+</ol>
+<p>Node 节点是代表获取lock的线程, 存在于 Condition Queue, Sync Queue 里面， 而其主要的分别就是 nextWaiter (标记共享还是独占),<br>waitStatus 标记node的状态(PS: 这是关键, 理解了 waitStatus 的变化流程, 就能理解整个 AQS)</p>
+<p>下图就是 Node</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/263562-328067a54dfdb18f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img"></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 代表 Thread 存在于 Sync Queue 与 Condition Queue 的节点</span></div><div class="line">       <span class="keyword">static</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">Node</span> </span>&#123;</div><div class="line">           <span class="comment">// 标识节点是否是 共享的节点(这样的节点只存在于 Sync Queue 里面)</span></div><div class="line">           <span class="keyword">static</span> <span class="keyword">final</span> Node SHARED = <span class="keyword">new</span> Node();</div><div class="line">           <span class="comment">// 标识节点是 独占模式</span></div><div class="line">           <span class="keyword">static</span> <span class="keyword">final</span> Node EXCLUSIVE = <span class="keyword">null</span>;</div><div class="line"></div><div class="line">           </div><div class="line">          <span class="comment">// CANCELLED 说明节点已经 取消获取 lock 了(一般是由于 interrupt 或 timeout 导致的)</span></div><div class="line">          <span class="comment">// 很多时候是在 cancelAcquire 里面进行设置这个标识</span></div><div class="line">           <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> CANCELLED = <span class="number">1</span>;</div><div class="line"></div><div class="line">           <span class="comment">// SIGNAL 标识当前节点的后继节点需要唤醒(PS: 这个通常是在 独占模式下使用, 在共享模式下有时用 PROPAGATE)</span></div><div class="line">           <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> SIGNAL = -<span class="number">1</span>;</div><div class="line"></div><div class="line">            <span class="comment">// 当前节点在 Condition Queue 里面</span></div><div class="line">           <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> CONDITION = -<span class="number">2</span>;</div><div class="line">           </div><div class="line">            <span class="comment">// 当前节点获取到 lock 或进行 release lock 时, 共享模式的最终状态是 PROPAGATE(PS: 有可能共享模式的节点变成 PROPAGATE 之前就被其后继节点抢占 head 节点, 而从Sync Queue中被踢出掉)</span></div><div class="line">           <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> PROPAGATE = -<span class="number">3</span>;</div><div class="line"></div><div class="line">           <span class="keyword">volatile</span> <span class="keyword">int</span> waitStatus;</div><div class="line"></div><div class="line">           <span class="comment">// 节点在 Sync Queue 里面时的前继节点(主要来进行 skip CANCELLED 的节点)</span></div><div class="line">           <span class="comment">// 注意: 根据 addWaiter方法:</span></div><div class="line">           <span class="comment">// 1. prev节点在队列里面, 则 prev != null 肯定成立</span></div><div class="line">           <span class="comment">// 2. prev != null 成立, 不一定 node 就在 Sync Queue 里面</span></div><div class="line">           <span class="keyword">volatile</span> Node prev;</div><div class="line"></div><div class="line">            <span class="comment">// Node 在 Sync Queue 里面的后继节点, 主要是在release lock 时进行后继节点的唤醒</span></div><div class="line">            <span class="comment">// 而后继节点在前继节点上打上 SIGNAL 标识, 来提醒他 release lock 时需要唤醒</span></div><div class="line">           <span class="keyword">volatile</span> Node next;</div><div class="line"></div><div class="line">           <span class="comment">//  获取 lock 的引用 </span></div><div class="line">           <span class="keyword">volatile</span> Thread thread;</div><div class="line"></div><div class="line">           <span class="comment">// 作用分成两种:</span></div><div class="line">           <span class="comment">// 1. 在 Sync Queue 里面, nextWaiter用来判断节点是 共享模式, 还是独占模式</span></div><div class="line">           <span class="comment">// 2. 在 Condition queue 里面, 节点主要是链接且后继节点 (Condition queue是一个单向的, 不支持并发的 list)</span></div><div class="line">           Node nextWaiter;</div><div class="line"></div><div class="line">           <span class="comment">// 当前节点是否是共享模式 </span></div><div class="line">           <span class="function"><span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">isShared</span><span class="params">()</span> </span>&#123;</div><div class="line">               <span class="keyword">return</span> nextWaiter == SHARED;</div><div class="line">           &#125;</div><div class="line"></div><div class="line">           <span class="comment">// 获取 node 的前继节点</span></div><div class="line">           <span class="function"><span class="keyword">final</span> Node <span class="title">predecessor</span><span class="params">()</span> <span class="keyword">throws</span> NullPointerException </span>&#123;</div><div class="line">               Node p = prev;</div><div class="line">               <span class="keyword">if</span> (p == <span class="keyword">null</span>) &#123;</div><div class="line">                   <span class="keyword">throw</span> <span class="keyword">new</span> NullPointerException();</div><div class="line">               &#125; <span class="keyword">else</span> &#123;</div><div class="line">                   <span class="keyword">return</span> p;</div><div class="line">               &#125;</div><div class="line">           &#125;</div><div class="line"></div><div class="line">           Node() &#123;</div><div class="line">           &#125;</div><div class="line"></div><div class="line">            <span class="comment">// 初始化 Node 用于 Sync Queue 里面</span></div><div class="line">           Node(Thread thread, Node mode) &#123;     <span class="comment">// Used by addWaiter</span></div><div class="line">               <span class="keyword">this</span>.nextWaiter = mode;</div><div class="line">               <span class="keyword">this</span>.thread = thread;</div><div class="line">           &#125;</div><div class="line"></div><div class="line">            <span class="comment">// 初始化 Node 用于 Condition Queue 里面</span></div><div class="line">           Node(Thread thread, <span class="keyword">int</span> waitStatus) &#123; <span class="comment">// Used by Condition</span></div><div class="line">               <span class="keyword">this</span>.waitStatus = waitStatus;</div><div class="line">               <span class="keyword">this</span>.thread = thread;</div><div class="line">           &#125;</div><div class="line">       &#125;</div></pre></td></tr></table></figure>
+<p>waitStatus的状态变化:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">1. 线程刚入 Sync Queue 里面, 发现 独占锁被其他人获取, 则将其前继节点标记为 SIGNAL, 然后再尝试获取一下锁(调用 tryAcquire 方法)</div><div class="line">2. 若 调用 tryAcquire 方法获取失败, 则判断一下是否前继节点被标记为 SIGNAL, 若是的话 直接 block(block前会确保前继节点被标记为SIGNAL, 因为前继节点在进行释放锁时根据是否标记为 SIGNAL 来决定唤醒后继节点与否 &lt;- 这是独占的情况下)</div><div class="line">3. 前继节点使用完lock, 进行释放, 因为自己被标记为 SIGNAL, 所以唤醒其后继节点</div></pre></td></tr></table></figure>
+<p>waitStatus 变化过程:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="number">1</span>. 独占模式下:  <span class="number">0</span>(初始) -&gt; signal(被后继节点标记为release需要唤醒后继节点) -&gt; <span class="number">0</span> (等释放好lock, 会恢复到<span class="number">0</span>)</div><div class="line"><span class="number">2</span>. 独占模式 + 使用 Condition情况下: <span class="number">0</span>(初始) -&gt; signal(被后继节点标记为release需要唤醒后继节点) -&gt; <span class="number">0</span> (等释放好lock, 会恢复到<span class="number">0</span>)</div><div class="line">   其上可能涉及 中断与超时, 只是多了一个 CANCELLED, 当节点变成 CANCELLED, 后就等着被清除</div><div class="line"><span class="number">3</span>. 共享模式下: <span class="number">0</span>(初始) -&gt; PROPAGATE(获取 lock 或release lock 时) (获取 lock 时会调用 setHeadAndPropagate 来进行 传递式的唤醒后继节点, 直到碰到 独占模式的节点)</div><div class="line"><span class="number">4</span>. 共享模式 + 独占模式下: <span class="number">0</span>(初始) -&gt; signal(被后继节点标记为release需要唤醒后继节点) -&gt; <span class="number">0</span> (等释放好lock, 会恢复到<span class="number">0</span>)</div><div class="line">其上的这些状态变化主要在: doReleaseShared , shouldParkAfterFailedAcquire 里面</div></pre></td></tr></table></figure>
+<h2 id="AbstractQueuedSynchronizer-内部Queue-Condition-Queue"><a href="#AbstractQueuedSynchronizer-内部Queue-Condition-Queue" class="headerlink" title="AbstractQueuedSynchronizer 内部Queue Condition Queue"></a>AbstractQueuedSynchronizer 内部Queue Condition Queue</h2><p>Condition Queue 是一个并发不安全的, 只用于独占模式的队列(PS: 为什么是并发不安全的呢? 主要是在操作 Condition 时, 线程必需获取 独占的 lock, 所以不需要考虑并发的安全问题);<br>而当Node存在于 Condition Queue 里面, 则其只有 waitStatus, thread, nextWaiter 有值, 其他的都是null(其中的 waitStatus 只能是 CONDITION, 0(0 代表node进行转移到 Sync Queue里面, 或被中断/timeout)); 这里有个注意点, 就是 当线程被中断或获取 lock 超时, 则一瞬间 node 会存在于 Condition Queue, Sync Queue 两个队列中.</p>
+<p>见图:</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/263562-fd3b56ad835e9f95.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img"></p>
+<p>节点 Node4, Node5, Node6, Node7 都是调用 Condition.awaitXX 方法 加入 Condition Queue(PS: 加入后会将原来的 lock 释放)</p>
+<h3 id="Condition-Queue-入队列方法-addConditionWaiter"><a href="#Condition-Queue-入队列方法-addConditionWaiter" class="headerlink" title="Condition Queue 入队列方法 addConditionWaiter"></a>Condition Queue 入队列方法 addConditionWaiter</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line"> * 将当前线程封装成一个 Node 节点 放入大 Condition Queue 里面</div><div class="line"> * 大家可以注意到, 下面对 Condition Queue 的操作都没考虑到 并发(Sync Queue 的队列是支持并发操作的), 这是为什么呢? 因为在进行操作 Condition 是当前的线程已经获取了AQS的独占锁, 所以不需要考虑并发的情况</div><div class="line"> */</div><div class="line"><span class="function"><span class="keyword">private</span> Node <span class="title">addConditionWaiter</span><span class="params">()</span></span>&#123;</div><div class="line">    <span class="comment">// 1. Condition queue 的尾节点</span></div><div class="line">    Node t = lastWaiter;                                </div><div class="line">    <span class="comment">// If lastWaiter is cancelled, clean out              </span></div><div class="line">    <span class="comment">// 2.尾节点已经Cancel, 直接进行清除,</span></div><div class="line">    <span class="comment">// 这里有1个问题, </span></div><div class="line">    <span class="comment">// 1 何时出现t.waitStatus != Node.CONDITION -&gt; 在对线程进行中断时 ConditionObject -&gt; await -&gt; checkInterruptWhileWaiting -&gt; transferAfterCancelledWait "compareAndSetWaitStatus(node, Node.CONDITION, 0)" &lt;- 导致这种情况一般是 线程中断或 await 超时</span></div><div class="line">    <span class="comment">//    一个注意点: 当Condition进行 awiat 超时或被中断时, Condition里面的节点是没有被删除掉的, 需要其他 await 在将线程加入 Condition Queue 时调用addConditionWaiter而进而删除, 或 await 操作差不多结束时, 调用 "node.nextWaiter != null" 进行判断而删除 (PS: 通过 signal 进行唤醒时 node.nextWaiter 会被置空, 而中断和超时时不会)</span></div><div class="line">    <span class="keyword">if</span>(t != <span class="keyword">null</span> &amp;&amp; t.waitStatus != Node.CONDITION)&#123;</div><div class="line">        unlinkCancelledWaiters();                        </div><div class="line">        <span class="comment">// 3. 调用 unlinkCancelledWaiters 对 "waitStatus != Node.CONDITION" 的节点进行删除(在Condition里面的Node的waitStatus 要么是CONDITION(正常), 要么就是 0 (signal/timeout/interrupt))</span></div><div class="line">        t = lastWaiter;                                </div><div class="line">        <span class="comment">// 4. 获取最新的 lastWaiter</span></div><div class="line">    &#125;</div><div class="line">    Node node = <span class="keyword">new</span> Node(Thread.currentThread(), Node.CONDITION); <span class="comment">// 5. 将线程封装成 node 准备放入 Condition Queue 里面</span></div><div class="line">    <span class="keyword">if</span>(t == <span class="keyword">null</span>)&#123;</div><div class="line">        <span class="comment">// 6 .Condition Queue 是空的</span></div><div class="line">        firstWaiter = node;                           </div><div class="line">    &#125;<span class="keyword">else</span>&#123;</div><div class="line">        <span class="comment">// 7. 最加到 queue 尾部</span></div><div class="line">        t.nextWaiter = node;                          </div><div class="line">    &#125;</div><div class="line">    <span class="comment">// 8. 重新赋值 lastWaiter</span></div><div class="line">    lastWaiter = node;                                </div><div class="line">    <span class="keyword">return</span> node;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="Condition-Queue-删除Cancelled节点的方法-unlinkCancelledWaiters"><a href="#Condition-Queue-删除Cancelled节点的方法-unlinkCancelledWaiters" class="headerlink" title="Condition Queue 删除Cancelled节点的方法 unlinkCancelledWaiters"></a>Condition Queue 删除Cancelled节点的方法 unlinkCancelledWaiters</h3><p>当Node在Condition Queue 中, 若状态不是 CONDITION, 则一定是 被中断或超时</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div></pre></td><td class="code"><pre><div class="line"> <span class="comment">// 在 调用 addConditionWaiter 将线程放入 Condition Queue 里面时 或 awiat 方法获取 差不多结束时 进行清理 Condition queue 里面的因 timeout/interrupt 而还存在的节点</span></div><div class="line"> <span class="comment">// 这个删除操作比较巧妙, 其中引入了 trail 节点， 可以理解为traverse整个 Condition Queue 时遇到的最后一个有效的节点</span></div><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">unlinkCancelledWaiters</span><span class="params">()</span></span>&#123;</div><div class="line">    Node t = firstWaiter;</div><div class="line">    Node trail = <span class="keyword">null</span>;</div><div class="line">    <span class="keyword">while</span>(t != <span class="keyword">null</span>)&#123;</div><div class="line">        Node next = t.nextWaiter;              </div><div class="line">        <span class="comment">// 1. 先初始化 next 节点</span></div><div class="line">        <span class="keyword">if</span>(t.waitStatus != Node.CONDITION)&#123;  </div><div class="line">        <span class="comment">// 2. 节点不有效, 在Condition Queue 里面 Node.waitStatus 只有可能是 CONDITION 或是 0(timeout/interrupt引起的)</span></div><div class="line">            t.nextWaiter = <span class="keyword">null</span>;               <span class="comment">// 3. Node.nextWaiter 置空</span></div><div class="line">            <span class="keyword">if</span>(trail == <span class="keyword">null</span>)&#123;                  <span class="comment">// 4. 一次都没有遇到有效的节点</span></div><div class="line">                firstWaiter = next;            <span class="comment">// 5. 将 next 赋值给 firstWaiter(此时 next 可能也是无效的, 这只是一个临时处理)</span></div><div class="line">            &#125;<span class="keyword">else</span>&#123;</div><div class="line">                trail.nextWaiter = next;       <span class="comment">// 6. next 赋值给 trail.nextWaiter, 这一步其实就是删除节点 t</span></div><div class="line">            &#125;</div><div class="line">            <span class="keyword">if</span>(next == <span class="keyword">null</span>)&#123;                  <span class="comment">// 7. next == null 说明 已经 traverse 完了 Condition Queue</span></div><div class="line">                lastWaiter = trail;</div><div class="line">            &#125;</div><div class="line">        &#125;<span class="keyword">else</span>&#123;</div><div class="line">            trail = t;                         <span class="comment">// 8. 将有效节点赋值给 trail</span></div><div class="line">        &#125;</div><div class="line">        t = next;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="Condition-Queue-转移节点的方法-transferForSignal"><a href="#Condition-Queue-转移节点的方法-transferForSignal" class="headerlink" title="Condition Queue 转移节点的方法 transferForSignal"></a>Condition Queue 转移节点的方法 transferForSignal</h3><p>transferForSignal只有在节点被正常唤醒才调用的正常转移的方法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line"> <span class="comment">// 将 Node 从Condition Queue 转移到 Sync Queue 里面</span></div><div class="line"> <span class="comment">// 在调用transferForSignal之前, 会 first.nextWaiter = null;</span></div><div class="line"> <span class="comment">// 而我们发现 若节点是因为 timeout / interrupt 进行转移, 则不会进行这步操作; 两种情况的转移都会把 wautStatus 置为 0</span></div><div class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">transferForSignal</span><span class="params">(Node node)</span></span>&#123;</div><div class="line">   <span class="comment">// 1. 若 node 已经 cancelled 则失败</span></div><div class="line">    <span class="keyword">if</span>(!compareAndSetWaitStatus(node, Node.CONDITION, <span class="number">0</span>))&#123; </div><div class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">    &#125;</div><div class="line">    <span class="comment">// 2. 加入 Sync Queue</span></div><div class="line">    Node p = enq(node);                                 </div><div class="line">    <span class="keyword">int</span> ws = p.waitStatus;</div><div class="line">    <span class="comment">// 3. 这里的 ws &gt; 0 指Sync Queue 中node 的前继节点cancelled 了, 所以, 唤醒一下 node</span></div><div class="line">    <span class="comment">// compareAndSetWaitStatus(p, ws, Node.SIGNAL)失败, 则说明 前继节点已经变成 SIGNAL 或 cancelled, 所以也要唤醒</span></div><div class="line">    <span class="keyword">if</span>(ws &gt; <span class="number">0</span> || !compareAndSetWaitStatus(p, ws, Node.SIGNAL))&#123; </div><div class="line">        LockSupport.unpark(node.thread);</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> <span class="keyword">true</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="Condition-Queue-转移节点的方法-transferAfterCancelledWait"><a href="#Condition-Queue-转移节点的方法-transferAfterCancelledWait" class="headerlink" title="Condition Queue 转移节点的方法 transferAfterCancelledWait"></a>Condition Queue 转移节点的方法 transferAfterCancelledWait</h3><p>transferAfterCancelledWait 在节点获取lock时被中断或获取超时才调用的转移方法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 将 Condition Queue 中因 timeout/interrupt 而唤醒的节点进行转移</span></div><div class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">transferAfterCancelledWait</span><span class="params">(Node node)</span></span>&#123;</div><div class="line">    <span class="comment">// 1. 没有 node 没有 cancelled , 直接进行转移 (转移后, Sync Queue , Condition Queue 都会存在 node)</span></div><div class="line">    <span class="keyword">if</span>(compareAndSetWaitStatus(node, Node.CONDITION, <span class="number">0</span>))&#123; </div><div class="line">        enq(node);</div><div class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</div><div class="line">    &#125;</div><div class="line">    <span class="comment">// 2.这时是其他的线程发送signal,将本线程转移到 Sync Queue 里面的工程中(转移的过程中 waitStatus = 0了, 所以上面的 CAS 操作失败)</span></div><div class="line">    <span class="keyword">while</span>(!isOnSyncQueue(node))&#123;                </div><div class="line">     <span class="comment">// 这里调用 isOnSyncQueue判断是否已经 入Sync Queue 了</span></div><div class="line">        Thread.yield();                         </div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h2 id="AbstractQueuedSynchronizer-内部Queue-Sync-Queue"><a href="#AbstractQueuedSynchronizer-内部Queue-Sync-Queue" class="headerlink" title="AbstractQueuedSynchronizer 内部Queue Sync Queue"></a>AbstractQueuedSynchronizer 内部Queue Sync Queue</h2><p>Sync Queue 是一个类似于 CLH Queue 的并发安全, 双向, 用于独占和共享两种模式下的 queue.<br>而当 Node 存在于 Sync Queue 时, waitStatus,， prev, next, thread, nextWaiter 均可能有值; waitStatus 可能是 SIGNAL, 0, PROPAGATE, CANCELLED; 当节点不是 head 时一定prev != null(而 node.prev != null 不能说明节点一定存在于 Sync Queue); node.next != null 则 node一定存在于Sync Queue, 而 node存在于 Sync Queue 则 node.next 就不一定 != null; thread 则代表获取 lock 的线程; nextWaiter 用于标示共享还是独占的获取 lock</p>
+<p>见图:</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/263562-c520b712aec0a7e4.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img"></p>
+<p>这个图代表有个线程获取lock, 而 Node1, Node2, Node3 则在Sync Queue 里面进行等待获取lock(PS: 注意到 dummy Node 的SINGNAL 这是叫获取 lock 的线程在释放lock时通知后继节点的标示)</p>
+<h3 id="Sync-Queue-节点入Queue方法"><a href="#Sync-Queue-节点入Queue方法" class="headerlink" title="Sync Queue 节点入Queue方法"></a>Sync Queue 节点入Queue方法</h3><p>这里有个地方需要注意, 就是初始化 head, tail 的节点, 不一定是 head.next, 因为期间可能被其他的线程进行抢占了</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div></pre></td><td class="code"><pre><div class="line">        <span class="comment">//将当前的线程封装成 Node 加入到 Sync Queue 里面</span></div><div class="line">        <span class="function"><span class="keyword">private</span> Node <span class="title">addWaiter</span><span class="params">(Node mode)</span></span>&#123;</div><div class="line">            <span class="comment">// 1. 封装 Node</span></div><div class="line">            Node node = <span class="keyword">new</span> Node(Thread.currentThread(), mode);   </div><div class="line">            Node pred = tail;</div><div class="line">            <span class="comment">// 2. pred != null -&gt; 队列中已经有节点, 直接 CAS 到尾节点</span></div><div class="line">            <span class="keyword">if</span>(pred != <span class="keyword">null</span>)&#123;</div><div class="line">                <span class="comment">// 3. 先设置 Node.pre = pred (PS: 则当一个 node在Sync Queue里面时  node.prev 一定 != null(除 dummy node), 但是 node.prev != null 不能说明其在 Sync Queue 里面, 因为现在的CAS可能失败 )</span></div><div class="line">                node.prev = pred;</div><div class="line">                <span class="comment">// 4. CAS node 到 tail</span></div><div class="line">                <span class="keyword">if</span>(compareAndSetTail(pred, node))&#123;</div><div class="line">                    <span class="comment">// 5. CAS 成功, 将 pred.next = node (PS: 说明 node.next != null -&gt; 则 node 一定在 Sync Queue, 但若 node 在Sync Queue 里面不一定 node.next != null)</span></div><div class="line">                    pred.next = node;</div><div class="line">                    <span class="keyword">return</span> node;</div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line">            <span class="comment">// 6. 队列为空, 调用 enq 入队列</span></div><div class="line">            enq(node);</div><div class="line">            <span class="keyword">return</span> node;</div><div class="line">        &#125;</div><div class="line"></div><div class="line"><span class="comment">// 这个插入会检测head tail 的初始化, 必要的话会初始化一个 dummy 节点, 这个和 ConcurrentLinkedQueue 一样的</span></div><div class="line"><span class="comment">// 将节点 node 加入队列</span></div><div class="line"><span class="comment">// 这里有个注意点</span></div><div class="line"><span class="comment">// 情况:</span></div><div class="line"><span class="comment">//      1. 首先 queue是空的</span></div><div class="line"><span class="comment">//      2. 初始化一个 dummy 节点</span></div><div class="line"><span class="comment">//      3. 这时再在tail后面添加节点(这一步可能失败, 可能发生竞争被其他的线程抢占)</span></div><div class="line"><span class="comment">//  这里为什么要加入一个 dummy 节点呢?</span></div><div class="line"><span class="comment">//      这里的 Sync Queue 是CLH lock的一个变种, 线程节点 node 能否获取lock的判断通过其前继节点</span></div><div class="line"><span class="comment">//      而且这里在当前节点想获取lock时通常给前继节点 打上 signal 的标识(表示前继节点释放lock需要通知我来获取lock)</span></div><div class="line"><span class="comment">//      若这里不清楚的同学, 请先看看 CLH lock的资料 (这是理解 AQS 的基础)</span></div><div class="line"></div><div class="line">        <span class="function"><span class="keyword">private</span> Node <span class="title">enq</span><span class="params">(<span class="keyword">final</span> Node node)</span></span>&#123;</div><div class="line">            <span class="keyword">for</span>(;;)&#123;</div><div class="line">                Node t = tail;</div><div class="line">                <span class="comment">// 1. 队列为空 初始化一个 dummy 节点 其实和 ConcurrentLinkedQueue 一样</span></div><div class="line">                <span class="keyword">if</span>(t == <span class="keyword">null</span>)&#123;</div><div class="line">                    <span class="comment">// 2. 初始化 head 与 tail (这个CAS成功后, head 就有值了, 详情将 Unsafe 操作)</span></div><div class="line">                    <span class="keyword">if</span>(compareAndSetHead(<span class="keyword">new</span> Node()))&#123;  </div><div class="line">                        tail = head;</div><div class="line">                    &#125;</div><div class="line">                &#125;<span class="keyword">else</span>&#123;</div><div class="line">                    <span class="comment">// 3. 先设置 Node.pre = pred (PS: 则当一个 node在Sync Queue里面时  node.prev 一定 != null, 但是 node.prev != null 不能说明其在 Sync Queue 里面, 因为现在的CAS可能失败 )</span></div><div class="line">                    node.prev = t;</div><div class="line">                    <span class="comment">// 4. CAS node 到 tail</span></div><div class="line">                    <span class="keyword">if</span>(compareAndSetTail(t, node))&#123;</div><div class="line">                        <span class="comment">// 5. CAS 成功, 将 pred.next = node (PS: 说明 node.next != null -&gt; 则 node 一定在 Sync Queue, 但若 node 在Sync Queue 里面不一定 node.next != null)</span></div><div class="line">                        t.next = node;                 </div><div class="line">                        <span class="keyword">return</span> t;</div><div class="line">                    &#125;</div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line">        &#125;</div></pre></td></tr></table></figure>
+<h3 id="Sync-Queue-节点出Queue方法"><a href="#Sync-Queue-节点出Queue方法" class="headerlink" title="Sync Queue 节点出Queue方法"></a>Sync Queue 节点出Queue方法</h3><p>这里的出Queue的方法其实有两个</p>
+<ol>
+<li>新节点获取lock, 调用setHead抢占head, 并且剔除原head</li>
+<li>节点因被中断或获取超时而进行 cancelled, 最后被剔除</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 设置 head 节点(在独占模式没有并发的可能, 当共享的模式有可能)</span></div><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">setHead</span><span class="params">(Node node)</span></span>&#123;</div><div class="line">    head = node;</div><div class="line">    node.thread = <span class="keyword">null</span>; <span class="comment">// 清除线程引用</span></div><div class="line">    node.prev = <span class="keyword">null</span>; <span class="comment">// 清除原来 head 的引用 &lt;- 都是 help GC</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"> <span class="comment">// 清除因中断/超时而放弃获取lock的线程节点(此时节点在 Sync Queue 里面)</span></div><div class="line"> <span class="comment">//</span></div><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">cancelAcquire</span><span class="params">(Node node)</span> </span>&#123;</div><div class="line">    <span class="comment">// Ignore if node doesn't exist</span></div><div class="line">    <span class="keyword">if</span> (node == <span class="keyword">null</span>)</div><div class="line">        <span class="keyword">return</span>;</div><div class="line">  </div><div class="line">    <span class="comment">// 1. 线程引用清空</span></div><div class="line">    node.thread = <span class="keyword">null</span>;                </div><div class="line"></div><div class="line">    Node pred = node.prev;</div><div class="line">  <span class="comment">// 2.  若前继节点是 CANCELLED 的, 则也一并清除</span></div><div class="line">    <span class="keyword">while</span> (pred.waitStatus &gt; <span class="number">0</span>)       </div><div class="line">        node.prev = pred = pred.prev;</div><div class="line"></div><div class="line">     <span class="comment">// 3. 这里的 predNext也是需要清除的(只不过在清除时的 CAS 操作需要 它)</span></div><div class="line">    Node predNext = pred.next;       </div><div class="line"></div><div class="line">  <span class="comment">// 4. 标识节点需要清除</span></div><div class="line">    node.waitStatus = Node.CANCELLED; </div><div class="line"></div><div class="line">   <span class="comment">// 5. 若需要清除额节点是尾节点, 则直接 CAS pred为尾节点</span></div><div class="line">    <span class="keyword">if</span> (node == tail &amp;&amp; compareAndSetTail(node, pred)) &#123;</div><div class="line">        <span class="comment">// 6. 删除节点predNext</span></div><div class="line">        compareAndSetNext(pred, predNext, <span class="keyword">null</span>);  </div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">        <span class="keyword">int</span> ws;</div><div class="line">        <span class="keyword">if</span> (pred != head &amp;&amp;</div><div class="line">            <span class="comment">// 7. 后继节点需要唤醒(但这里的后继节点predNext已经 CANCELLED 了)</span></div><div class="line">                ((ws = pred.waitStatus) == Node.SIGNAL || </div><div class="line">                 <span class="comment">// 8. 将 pred 标识为 SIGNAL</span></div><div class="line">                        (ws &lt;= <span class="number">0</span> &amp;&amp; compareAndSetWaitStatus(pred, ws, Node.SIGNAL))) &amp;&amp; </div><div class="line">                pred.thread != <span class="keyword">null</span>) &#123;</div><div class="line">            Node next = node.next;</div><div class="line">          <span class="comment">// 8. next.waitStatus &lt;= 0 表示 next 是个一个想要获取lock的节点</span></div><div class="line">            <span class="keyword">if</span> (next != <span class="keyword">null</span> &amp;&amp; next.waitStatus &lt;= <span class="number">0</span>) </div><div class="line">                compareAndSetNext(pred, predNext, next);</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">           <span class="comment">// 若 pred 是头节点, 则此刻可能有节点刚刚进入 queue ,所以进行一下唤醒</span></div><div class="line">            unparkSuccessor(node);</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        node.next = node; <span class="comment">// help GC</span></div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h2 id="AbstractQueuedSynchronizer常用方法"><a href="#AbstractQueuedSynchronizer常用方法" class="headerlink" title="AbstractQueuedSynchronizer常用方法"></a>AbstractQueuedSynchronizer常用方法</h2><h2 id="AbstractQueuedSynchronizer-独占的获取lock"><a href="#AbstractQueuedSynchronizer-独占的获取lock" class="headerlink" title="AbstractQueuedSynchronizer 独占的获取lock"></a>AbstractQueuedSynchronizer 独占的获取lock</h2><p>独占方式获取lock主要流程：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">1. 调用 tryAcquire 尝试性的获取锁(一般都是由子类实现), 成功的话直接返回</div><div class="line">2. tryAcquire 调用获取失败, 将当前的线程封装成 Node 加入到 Sync Queue 里面(调用addWaiter), 等待获取 signal 信号</div><div class="line">3. 调用 acquireQueued 进行自旋的方式获取锁(有可能会 repeatedly blocking and unblocking)</div><div class="line">4. 根据acquireQueued的返回值判断在获取lock的过程中是否被中断, 若被中断, 则自己再中断一下(selfInterrupt), 若是响应中断的则直接抛出异常</div></pre></td></tr></table></figure>
+<p>独占方式获取lock主要分成下面3类:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">1. acquire 不响应中断的获取lock, 这里的不响应中断指的是线程被中断后会被唤醒, 并且继续获取lock,在方法返回时, 根据刚才的获取过程是否被中断来决定是否要自己中断一下(方法 selfInterrupt)</div><div class="line">2. doAcquireInterruptibly 响应中断的获取 lock, 这里的响应中断, 指在线程获取 lock 过程中若被中断, 则直接抛出异常</div><div class="line">3. doAcquireNanos 响应中断及超时的获取 lock, 当线程被中断, 或获取超时, 则直接抛出异常, 获取失败</div></pre></td></tr></table></figure>
+<h3 id="AbstractQueuedSynchronizer-独占的获取lock-方法-acquire"><a href="#AbstractQueuedSynchronizer-独占的获取lock-方法-acquire" class="headerlink" title="AbstractQueuedSynchronizer 独占的获取lock 方法 acquire"></a>AbstractQueuedSynchronizer 独占的获取lock 方法 acquire</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"> <span class="comment">// acquire 是用于获取锁的最常用的模式</span></div><div class="line"> <span class="comment">// 步骤</span></div><div class="line"> <span class="comment">//      1. 调用 tryAcquire 尝试性的获取锁(一般都是又子类实现), 成功的话直接返回</span></div><div class="line"> <span class="comment">//      2. tryAcquire 调用获取失败, 将当前的线程封装成 Node 加入到 Sync Queue 里面(调用addWaiter), 等待获取 signal 信号</span></div><div class="line"> <span class="comment">//      3. 调用 acquireQueued 进行自旋的方式获取锁(有可能会 repeatedly blocking and unblocking)</span></div><div class="line"> <span class="comment">//      4. 根据acquireQueued的返回值判断在获取lock的过程中是否被中断, 若被中断, 则自己再中断一下(selfInterrupt)</span></div><div class="line"> <span class="comment">//</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">acquire</span><span class="params">(<span class="keyword">int</span> arg)</span></span>&#123;</div><div class="line">    <span class="keyword">if</span>(!tryAcquire(arg)&amp;&amp;</div><div class="line">        acquireQueued(addWaiter(Node.EXCLUSIVE), arg))&#123;</div><div class="line">        selfInterrupt();</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="AbstractQueuedSynchronizer-循环获取lock-方法-acquireQueued"><a href="#AbstractQueuedSynchronizer-循环获取lock-方法-acquireQueued" class="headerlink" title="AbstractQueuedSynchronizer 循环获取lock 方法 acquireQueued"></a>AbstractQueuedSynchronizer 循环获取lock 方法 acquireQueued</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div></pre></td><td class="code"><pre><div class="line"> <span class="comment">// 不支持中断的获取锁</span></div><div class="line"> <span class="comment">// 主逻辑:</span></div><div class="line"> <span class="comment">//  1. 当当前节点的前继节点是head节点时先 tryAcquire获取一下锁, 成功的话设置新 head, 返回</span></div><div class="line"> <span class="comment">//  2. 第一步不成功, 检测是否需要sleep, 需要的话就 sleep, 等待前继节点在释放lock时唤醒 或通过中断来唤醒</span></div><div class="line"> <span class="comment">//  3. 整个过程可能需要blocking nonblocking 几次</span></div><div class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">acquireQueued</span><span class="params">(<span class="keyword">final</span> Node node, <span class="keyword">int</span> arg)</span></span>&#123;</div><div class="line">    <span class="keyword">boolean</span> failed = <span class="keyword">true</span>;</div><div class="line">    <span class="keyword">try</span> &#123;</div><div class="line">        <span class="keyword">boolean</span> interrupted = <span class="keyword">false</span>;</div><div class="line">        <span class="keyword">for</span>(;;)&#123;</div><div class="line">            <span class="comment">// 1. 获取当前节点的前继节点 (当一个n在 Sync Queue 里面, 并且没有获取 lock 的 node 的前继节点不可能是 null)</span></div><div class="line">            <span class="keyword">final</span> Node p = node.predecessor();</div><div class="line">            <span class="comment">// 2. 判断前继节点是否是head节点(前继节点是head, 存在两种情况 (1) 前继节点现在占用 lock (2)前继节点是个空节点, 已经释放 lock, node 现在有机会获取 lock); 则再次调用 tryAcquire尝试获取一下</span></div><div class="line">            <span class="keyword">if</span>(p == head &amp;&amp; tryAcquire(arg))&#123;</div><div class="line">                <span class="comment">// 3. 获取 lock 成功, 直接设置 新head(原来的head可能就直接被回收)</span></div><div class="line">                setHead(node);                      </div><div class="line">                p.next = <span class="keyword">null</span>; <span class="comment">// help GC </span></div><div class="line">                failed = <span class="keyword">false</span>;</div><div class="line">                <span class="comment">// 4. 返回在整个获取的过程中是否被中断过 ; 但这又有什么用呢? 若整个过程中被中断过, 则最后我在 自我中断一下 (selfInterrupt), 因为外面的函数可能需要知道整个过程是否被中断过</span></div><div class="line">                <span class="keyword">return</span> interrupted;               </div><div class="line">            &#125;</div><div class="line">            <span class="comment">// 5. 调用 shouldParkAfterFailedAcquire 判断是否需要中断(这里可能会一开始 返回 false, 但在此进去后直接返回 true(主要和前继节点的状态是否是 signal))</span></div><div class="line">            <span class="keyword">if</span>(shouldParkAfterFailedAcquire(p, node) &amp;&amp; </div><div class="line">                    parkAndCheckInterrupt())&#123;</div><div class="line">                <span class="comment">// 6. 现在lock还是被其他线程占用 那就睡一会, 返回值判断是否这次线程的唤醒是被中断唤醒</span></div><div class="line">                interrupted = <span class="keyword">true</span>;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;<span class="keyword">finally</span> &#123;</div><div class="line">        <span class="comment">// 7. 在整个获取中出错</span></div><div class="line">        <span class="keyword">if</span>(failed)&#123;</div><div class="line">            <span class="comment">// 8. 清除 node 节点(清除的过程是先给 node 打上 CANCELLED标志, 然后再删除)</span></div><div class="line">            cancelAcquire(node);              </div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="AbstractQueuedSynchronizer-支持中断获取lock-方法-doAcquireInterruptibly"><a href="#AbstractQueuedSynchronizer-支持中断获取lock-方法-doAcquireInterruptibly" class="headerlink" title="AbstractQueuedSynchronizer 支持中断获取lock 方法 doAcquireInterruptibly"></a>AbstractQueuedSynchronizer 支持中断获取lock 方法 doAcquireInterruptibly</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">doAcquireInterruptibly</span><span class="params">(<span class="keyword">int</span> arg)</span> <span class="keyword">throws</span> InterruptedException</span>&#123;</div><div class="line">            <span class="comment">// 1. 将当前的线程封装成 Node 加入到 Sync Queue 里面</span></div><div class="line">            <span class="keyword">final</span> Node node = addWaiter(Node.EXCLUSIVE); </div><div class="line">            <span class="keyword">boolean</span> failed = <span class="keyword">true</span>;</div><div class="line">            <span class="keyword">try</span> &#123;</div><div class="line">                <span class="keyword">for</span>(;;)&#123;</div><div class="line">                    <span class="comment">// 2. 获取当前节点的前继节点 (当一个n在 Sync Queue 里面, 并且没有获取 lock 的 node 的前继节点不可能是 null)</span></div><div class="line">                    <span class="keyword">final</span> Node p = node.predecessor();</div><div class="line">                    <span class="comment">// 3. 判断前继节点是否是head节点(前继节点是head, 存在两种情况 (1) 前继节点现在占用 lock (2)前继节点是个空节点, 已经释放 lock, node 现在有机会获取 lock); 则再次调用 tryAcquire尝试获取一下</span></div><div class="line">                    <span class="keyword">if</span>(p == head &amp;&amp; tryAcquire(arg))&#123;  </div><div class="line">                        setHead(node);</div><div class="line">                        p.next = <span class="keyword">null</span>; <span class="comment">// help GC</span></div><div class="line">                        failed = <span class="keyword">false</span>;</div><div class="line">                        <span class="keyword">return</span>;</div><div class="line">                    &#125;</div><div class="line">                    <span class="comment">// 4. 调用 shouldParkAfterFailedAcquire 判断是否需要中断(这里可能会一开始 返回 false, 但在此进去后直接返回 true(主要和前继节点的状态是否是 signal))</span></div><div class="line">                    <span class="keyword">if</span>(shouldParkAfterFailedAcquire(p, node) &amp;&amp;</div><div class="line">                            <span class="comment">// 5. 现在lock还是被其他线程占用 那就睡一会, 返回值判断是否这次线程的唤醒是被中断唤醒</span></div><div class="line">                            parkAndCheckInterrupt())&#123;</div><div class="line">                        <span class="comment">// 6. 线程此时唤醒是通过线程中断, 则直接抛异常</span></div><div class="line">                        <span class="keyword">throw</span> <span class="keyword">new</span> InterruptedException();       </div><div class="line">                    &#125;</div><div class="line">                &#125;</div><div class="line">            &#125;<span class="keyword">finally</span> &#123;</div><div class="line">                <span class="comment">// 7. 在整个获取中出错(比如线程中断)</span></div><div class="line">                <span class="keyword">if</span>(failed)&#123;</div><div class="line">                    <span class="comment">// 8. 清除 node 节点(清除的过程是先给 node 打上 CANCELLED标志, 然后再删除)</span></div><div class="line">                    cancelAcquire(node);    </div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line">        &#125;</div></pre></td></tr></table></figure>
+<h3 id="AbstractQueuedSynchronizer-支持超时-amp-中断获取lock-方法-doAcquireNanos-int-arg-long-nanosTimeout"><a href="#AbstractQueuedSynchronizer-支持超时-amp-中断获取lock-方法-doAcquireNanos-int-arg-long-nanosTimeout" class="headerlink" title="AbstractQueuedSynchronizer 支持超时&amp;中断获取lock 方法 doAcquireNanos(int arg, long nanosTimeout)"></a>AbstractQueuedSynchronizer 支持超时&amp;中断获取lock 方法 doAcquireNanos(int arg, long nanosTimeout)</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">boolean</span> <span class="title">doAcquireNanos</span><span class="params">(<span class="keyword">int</span> arg, <span class="keyword">long</span> nanosTimeout)</span> <span class="keyword">throws</span> InterruptedException</span>&#123;</div><div class="line">    <span class="keyword">if</span>(nanosTimeout &lt;= <span class="number">0L</span>)&#123;</div><div class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">final</span> <span class="keyword">long</span> deadline = System.nanoTime() + nanosTimeout; <span class="comment">// 0. 计算截至时间</span></div><div class="line">    <span class="keyword">final</span> Node node = addWaiter(Node.EXCLUSIVE);  <span class="comment">// 1. 将当前的线程封装成 Node 加入到 Sync Queue 里面</span></div><div class="line">    <span class="keyword">boolean</span> failed = <span class="keyword">true</span>;</div><div class="line"></div><div class="line">    <span class="keyword">try</span> &#123;</div><div class="line">        <span class="keyword">for</span>(;;)&#123;</div><div class="line">            <span class="keyword">final</span> Node p = node.predecessor(); <span class="comment">// 2. 获取当前节点的前继节点 (当一个n在 Sync Queue 里面, 并且没有获取 lock 的 node 的前继节点不可能是 null)</span></div><div class="line">            <span class="keyword">if</span>(p == head &amp;&amp; tryAcquire(arg))&#123;  <span class="comment">// 3. 判断前继节点是否是head节点(前继节点是head, 存在两种情况 (1) 前继节点现在占用 lock (2)前继节点是个空节点, 已经释放 lock, node 现在有机会获取 lock); 则再次调用 tryAcquire尝试获取一下</span></div><div class="line">                setHead(node);</div><div class="line">                p.next = <span class="keyword">null</span>; <span class="comment">// help GC</span></div><div class="line">                failed = <span class="keyword">false</span>;</div><div class="line">                <span class="keyword">return</span> <span class="keyword">true</span>;</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            nanosTimeout = deadline - System.nanoTime(); <span class="comment">// 4. 计算还剩余的时间</span></div><div class="line">            <span class="keyword">if</span>(nanosTimeout &lt;= <span class="number">0L</span>)&#123;                      <span class="comment">// 5. 时间超时, 直接返回</span></div><div class="line">                <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">            &#125;</div><div class="line">            <span class="keyword">if</span>(shouldParkAfterFailedAcquire(p, node) &amp;&amp; <span class="comment">// 6. 调用 shouldParkAfterFailedAcquire 判断是否需要中断(这里可能会一开始 返回 false, 但在此进去后直接返回 true(主要和前继节点的状态是否是 signal))</span></div><div class="line">                    nanosTimeout &gt; spinForTimeoutThreshold)&#123; <span class="comment">// 7. 若没超时, 并且大于spinForTimeoutThreshold, 则线程 sleep(小于spinForTimeoutThreshold, 则直接自旋, 因为效率更高 调用 LockSupport 是需要开销的)</span></div><div class="line">                LockSupport.parkNanos(<span class="keyword">this</span>, nanosTimeout);</div><div class="line">            &#125;</div><div class="line">            <span class="keyword">if</span>(Thread.interrupted())&#123;                           <span class="comment">// 8. 线程此时唤醒是通过线程中断, 则直接抛异常</span></div><div class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> InterruptedException();</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;<span class="keyword">finally</span> &#123;</div><div class="line">        <span class="keyword">if</span>(failed)&#123;                 <span class="comment">// 9. 在整个获取中出错(比如线程中断/超时)</span></div><div class="line">            cancelAcquire(node);    <span class="comment">// 10. 清除 node 节点(清除的过程是先给 node 打上 CANCELLED标志, 然后再删除)</span></div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="AbstractQueuedSynchronizer-释放lock方法"><a href="#AbstractQueuedSynchronizer-释放lock方法" class="headerlink" title="AbstractQueuedSynchronizer 释放lock方法"></a>AbstractQueuedSynchronizer 释放lock方法</h3><p>整个释放 lock 流程</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">1. 调用子类的 tryRelease 方法释放获取的资源</div><div class="line">2. 判断是否完全释放lock(这里有 lock 重复获取的情况)</div><div class="line">3. 判断是否有后继节点需要唤醒, 需要的话调用unparkSuccessor进行唤醒</div></pre></td></tr></table></figure>
+<p>看代码:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">release</span><span class="params">(<span class="keyword">int</span> arg)</span></span>&#123;</div><div class="line"><span class="comment">// 1. 调用子类, 若完全释放好, 则返回true(这里有lock重复获取)</span></div><div class="line">    <span class="keyword">if</span>(tryRelease(arg))&#123;   </div><div class="line">        Node h = head;</div><div class="line">        <span class="comment">// 2. h.waitStatus !=0 其实就是 h.waitStatus &lt; 0 后继节点需要唤醒</span></div><div class="line">        <span class="keyword">if</span>(h != <span class="keyword">null</span> &amp;&amp; h.waitStatus != <span class="number">0</span>)&#123; </div><div class="line">        <span class="comment">// 3. 唤醒后继节点</span></div><div class="line">            unparkSuccessor(h);   </div><div class="line">        &#125;</div><div class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line"></div><div class="line"> <span class="comment">// 唤醒 node 的后继节点</span></div><div class="line"> <span class="comment">// 这里有个注意点: 唤醒时会将当前node的标识归位为 0</span></div><div class="line"> <span class="comment">// 等于当前节点标识位 的流转过程: 0(刚加入queue) -&gt; signal (被后继节点要求在释放时需要唤醒) -&gt; 0 (进行唤醒后继节点)</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">unparkSuccessor</span><span class="params">(Node node)</span> </span>&#123;</div><div class="line">    logger.info(<span class="string">"unparkSuccessor node:"</span> + node + Thread.currentThread().getName());</div><div class="line"></div><div class="line">    <span class="keyword">int</span> ws = node.waitStatus;</div><div class="line">    <span class="keyword">if</span> (ws &lt; <span class="number">0</span>)</div><div class="line">  <span class="comment">// 1. 清除前继节点的标识</span></div><div class="line">        compareAndSetWaitStatus(node, ws, <span class="number">0</span>);     </div><div class="line">        </div><div class="line">    Node s = node.next;</div><div class="line">    logger.info(<span class="string">"unparkSuccessor s:"</span> + node + Thread.currentThread().getName());</div><div class="line">     <span class="comment">// 2. 这里若在 Sync Queue 里面存在想要获取 lock 的节点,则一定需要唤醒一下(跳过取消的节点)　（PS: s == null发生在共享模式的竞争释放资源）</span></div><div class="line">    <span class="keyword">if</span> (s == <span class="keyword">null</span> || s.waitStatus &gt; <span class="number">0</span>) &#123;        </div><div class="line">        s = <span class="keyword">null</span>;</div><div class="line">        <span class="keyword">for</span> (Node t = tail; t != <span class="keyword">null</span> &amp;&amp; t != node; t = t.prev)</div><div class="line">          <span class="comment">// 3. 找到 queue 里面最前面想要获取 Lock 的节点</span></div><div class="line">            <span class="keyword">if</span> (t.waitStatus &lt;= <span class="number">0</span>)            </div><div class="line">                s = t;</div><div class="line">    &#125;</div><div class="line">    logger.info(<span class="string">"unparkSuccessor s:"</span>+s);</div><div class="line">    <span class="keyword">if</span> (s != <span class="keyword">null</span>)</div><div class="line">        LockSupport.unpark(s.thread);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="AbstractQueuedSynchronizer-获取共享lock"><a href="#AbstractQueuedSynchronizer-获取共享lock" class="headerlink" title="AbstractQueuedSynchronizer 获取共享lock"></a>AbstractQueuedSynchronizer 获取共享lock</h3><p>共享方式获取lock流程:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">1. 调用 tryAcquireShared 尝试性的获取锁(一般都是由子类实现), 成功的话直接返回</div><div class="line">2. tryAcquireShared 调用获取失败, 将当前的线程封装成 Node 加入到 Sync Queue 里面(调用addWaiter), 等待获取 signal 信号</div><div class="line">3. 在 Sync Queue 里面进行自旋的方式获取锁(有可能会 repeatedly blocking and unblocking</div><div class="line">4. 当获取失败, 则判断是否可以 block(block的前提是前继节点被打上 SIGNAL 标示)</div><div class="line">5. 共享与独占获取lock的区别主要在于 在共享方式下获取 lock 成功会判断是否需要继续唤醒下面的继续获取共享lock的节点(及方法 doReleaseShared)</div></pre></td></tr></table></figure>
+<p>共享方式获取lock主要分成下面3类:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">1. acquireShared 不响应中断的获取lock, 这里的不响应中断指的是线程被中断后会被唤醒, 并且继续获取lock,在方法返回时, 根据刚才的获取过程是否被中断来决定是否要自己中断一下(方法 selfInterrupt)</div><div class="line">2. doAcquireSharedInterruptibly 响应中断的获取 lock, 这里的响应中断, 指在线程获取 lock 过程中若被中断, 则直接抛出异常</div><div class="line">3. doAcquireSharedNanos 响应中断及超时的获取 lock, 当线程被中断, 或获取超时, 则直接抛出异常, 获取失败</div></pre></td></tr></table></figure>
+<h3 id="AbstractQueuedSynchronizer-获取共享lock-方法-acquireShared"><a href="#AbstractQueuedSynchronizer-获取共享lock-方法-acquireShared" class="headerlink" title="AbstractQueuedSynchronizer 获取共享lock 方法 acquireShared"></a>AbstractQueuedSynchronizer 获取共享lock 方法 acquireShared</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line"> * 获取 共享 lock</div><div class="line"> */</div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">acquireShared</span><span class="params">(<span class="keyword">int</span> arg)</span></span>&#123;</div><div class="line">    <span class="keyword">if</span>(tryAcquireShared(arg) &lt; <span class="number">0</span>)&#123;  <span class="comment">// 1. 调用子类, 获取共享 lock  返回 &lt; 0, 表示失败</span></div><div class="line">        doAcquireShared(arg);       <span class="comment">// 2. 调用 doAcquireShared 当前 线程加入 Sync Queue 里面, 等待获取 lock</span></div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="AbstractQueuedSynchronizer-获取共享lock-方法-doAcquireShared"><a href="#AbstractQueuedSynchronizer-获取共享lock-方法-doAcquireShared" class="headerlink" title="AbstractQueuedSynchronizer 获取共享lock 方法 doAcquireShared"></a>AbstractQueuedSynchronizer 获取共享lock 方法 doAcquireShared</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line"> * Acquire in shared uninterruptible mode</div><div class="line"> * <span class="doctag">@param</span> arg the acquire argument</div><div class="line"> */</div><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">doAcquireShared</span><span class="params">(<span class="keyword">int</span> arg)</span></span>&#123;</div><div class="line">    <span class="keyword">final</span> Node node = addWaiter(Node.SHARED);       <span class="comment">// 1. 将当前的线程封装成 Node 加入到 Sync Queue 里面</span></div><div class="line">    <span class="keyword">boolean</span> failed = <span class="keyword">true</span>;</div><div class="line"></div><div class="line">    <span class="keyword">try</span> &#123;</div><div class="line">        <span class="keyword">boolean</span> interrupted = <span class="keyword">false</span>;</div><div class="line">        <span class="keyword">for</span>(;;)&#123;</div><div class="line">            <span class="keyword">final</span> Node p = node.predecessor();      <span class="comment">// 2. 获取当前节点的前继节点 (当一个n在 Sync Queue 里面, 并且没有获取 lock 的 node 的前继节点不可能是 null)</span></div><div class="line">            <span class="keyword">if</span>(p == head)&#123;</div><div class="line">                <span class="keyword">int</span> r = tryAcquireShared(arg);      <span class="comment">// 3. 判断前继节点是否是head节点(前继节点是head, 存在两种情况 (1) 前继节点现在占用 lock (2)前继节点是个空节点, 已经释放 lock, node 现在有机会获取 lock); 则再次调用 tryAcquireShared 尝试获取一下</span></div><div class="line">                <span class="keyword">if</span>(r &gt;= <span class="number">0</span>)&#123;</div><div class="line">                    setHeadAndPropagate(node, r);   <span class="comment">// 4. 获取 lock 成功, 设置新的 head, 并唤醒后继获取  readLock 的节点</span></div><div class="line">                    p.next = <span class="keyword">null</span>; <span class="comment">// help GC</span></div><div class="line">                    <span class="keyword">if</span>(interrupted)&#123;               <span class="comment">// 5. 在获取 lock 时, 被中断过, 则自己再自我中断一下(外面的函数可能需要这个参数)</span></div><div class="line">                        selfInterrupt();</div><div class="line">                    &#125;</div><div class="line">                    failed = <span class="keyword">false</span>;</div><div class="line">                    <span class="keyword">return</span>;</div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            <span class="keyword">if</span>(shouldParkAfterFailedAcquire(p, node) &amp;&amp; <span class="comment">// 6. 调用 shouldParkAfterFailedAcquire 判断是否需要中断(这里可能会一开始 返回 false, 但在此进去后直接返回 true(主要和前继节点的状态是否是 signal))</span></div><div class="line">                    parkAndCheckInterrupt())&#123;           <span class="comment">// 7. 现在lock还是被其他线程占用 那就睡一会, 返回值判断是否这次线程的唤醒是被中断唤醒</span></div><div class="line">                interrupted = <span class="keyword">true</span>;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;<span class="keyword">finally</span> &#123;</div><div class="line">        <span class="keyword">if</span>(failed)&#123;             <span class="comment">// 8. 在整个获取中出错(比如线程中断/超时)</span></div><div class="line">            cancelAcquire(node);  <span class="comment">// 9. 清除 node 节点(清除的过程是先给 node 打上 CANCELLED标志, 然后再删除)</span></div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="AbstractQueuedSynchronizer-获取共享lock-方法-doAcquireSharedInterruptibly"><a href="#AbstractQueuedSynchronizer-获取共享lock-方法-doAcquireSharedInterruptibly" class="headerlink" title="AbstractQueuedSynchronizer 获取共享lock 方法 doAcquireSharedInterruptibly"></a>AbstractQueuedSynchronizer 获取共享lock 方法 doAcquireSharedInterruptibly</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">doAcquireSharedInterruptibly</span><span class="params">(<span class="keyword">int</span> arg)</span> <span class="keyword">throws</span> InterruptedException</span>&#123;</div><div class="line">    <span class="keyword">final</span> Node node = addWaiter(Node.SHARED);            <span class="comment">// 1. 将当前的线程封装成 Node 加入到 Sync Queue 里面</span></div><div class="line">    <span class="keyword">boolean</span> failed = <span class="keyword">true</span>;</div><div class="line"></div><div class="line">    <span class="keyword">try</span> &#123;</div><div class="line">        <span class="keyword">for</span>(;;)&#123;</div><div class="line">            <span class="keyword">final</span> Node p = node.predecessor();          <span class="comment">// 2. 获取当前节点的前继节点 (当一个n在 Sync Queue 里面, 并且没有获取 lock 的 node 的前继节点不可能是 null)</span></div><div class="line">            <span class="keyword">if</span>(p == head)&#123;</div><div class="line">                <span class="keyword">int</span> r = tryAcquireShared(arg);          <span class="comment">// 3. 判断前继节点是否是head节点(前继节点是head, 存在两种情况 (1) 前继节点现在占用 lock (2)前继节点是个空节点, 已经释放 lock, node 现在有机会获取 lock); 则再次调用 tryAcquireShared 尝试获取一下</span></div><div class="line">                <span class="keyword">if</span>(r &gt;= <span class="number">0</span>)&#123;</div><div class="line">                    setHeadAndPropagate(node, r);       <span class="comment">// 4. 获取 lock 成功, 设置新的 head, 并唤醒后继获取  readLock 的节点</span></div><div class="line">                    p.next = <span class="keyword">null</span>; <span class="comment">// help GC</span></div><div class="line">                    failed = <span class="keyword">false</span>;</div><div class="line">                    <span class="keyword">return</span>;</div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            <span class="keyword">if</span>(shouldParkAfterFailedAcquire(p, node) &amp;&amp; <span class="comment">// 5. 调用 shouldParkAfterFailedAcquire 判断是否需要中断(这里可能会一开始 返回 false, 但在此进去后直接返回 true(主要和前继节点的状态是否是 signal))</span></div><div class="line">                    parkAndCheckInterrupt())&#123;           <span class="comment">// 6. 现在lock还是被其他线程占用 那就睡一会, 返回值判断是否这次线程的唤醒是被中断唤醒</span></div><div class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> InterruptedException();     <span class="comment">// 7. 若此次唤醒是 通过线程中断, 则直接抛出异常</span></div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;<span class="keyword">finally</span> &#123;</div><div class="line">        <span class="keyword">if</span>(failed)&#123;              <span class="comment">// 8. 在整个获取中出错(比如线程中断/超时)</span></div><div class="line">            cancelAcquire(node); <span class="comment">// 9. 清除 node 节点(清除的过程是先给 node 打上 CANCELLED标志, 然后再删除)</span></div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="AbstractQueuedSynchronizer-获取共享lock-方法-doAcquireSharedNanos"><a href="#AbstractQueuedSynchronizer-获取共享lock-方法-doAcquireSharedNanos" class="headerlink" title="AbstractQueuedSynchronizer 获取共享lock 方法 doAcquireSharedNanos"></a>AbstractQueuedSynchronizer 获取共享lock 方法 doAcquireSharedNanos</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">boolean</span> <span class="title">doAcquireSharedNanos</span><span class="params">(<span class="keyword">int</span> arg, <span class="keyword">long</span> nanosTimeout)</span> <span class="keyword">throws</span> InterruptedException</span>&#123;</div><div class="line">    <span class="keyword">if</span> (nanosTimeout &lt;= <span class="number">0L</span>)&#123;</div><div class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">final</span> <span class="keyword">long</span> deadline = System.nanoTime() + nanosTimeout;  <span class="comment">// 0. 计算超时的时间</span></div><div class="line">    <span class="keyword">final</span> Node node = addWaiter(Node.SHARED);               <span class="comment">// 1. 将当前的线程封装成 Node 加入到 Sync Queue 里面</span></div><div class="line">    <span class="keyword">boolean</span> failed = <span class="keyword">true</span>;</div><div class="line"></div><div class="line">    <span class="keyword">try</span> &#123;</div><div class="line">        <span class="keyword">for</span>(;;)&#123;</div><div class="line">            <span class="keyword">final</span> Node p = node.predecessor();          <span class="comment">// 2. 获取当前节点的前继节点 (当一个n在 Sync Queue 里面, 并且没有获取 lock 的 node 的前继节点不可能是 null)</span></div><div class="line">            <span class="keyword">if</span>(p == head)&#123;</div><div class="line">                <span class="keyword">int</span> r = tryAcquireShared(arg);          <span class="comment">// 3. 判断前继节点是否是head节点(前继节点是head, 存在两种情况 (1) 前继节点现在占用 lock (2)前继节点是个空节点, 已经释放 lock, node 现在有机会获取 lock); 则再次调用 tryAcquireShared 尝试获取一下</span></div><div class="line">                <span class="keyword">if</span>(r &gt;= <span class="number">0</span>)&#123;</div><div class="line">                    setHeadAndPropagate(node, r);       <span class="comment">// 4. 获取 lock 成功, 设置新的 head, 并唤醒后继获取  readLock 的节点</span></div><div class="line">                    p.next = <span class="keyword">null</span>; <span class="comment">// help GC</span></div><div class="line">                    failed = <span class="keyword">false</span>;</div><div class="line">                    <span class="keyword">return</span> <span class="keyword">true</span>;</div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            nanosTimeout = deadline - System.nanoTime(); <span class="comment">// 5. 计算还剩余的 timeout , 若小于0 则直接return</span></div><div class="line">            <span class="keyword">if</span>(nanosTimeout &lt;= <span class="number">0L</span>)&#123;</div><div class="line">                <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">            &#125;</div><div class="line">            <span class="keyword">if</span>(shouldParkAfterFailedAcquire(p, node) &amp;&amp;         <span class="comment">// 6. 调用 shouldParkAfterFailedAcquire 判断是否需要中断(这里可能会一开始 返回 false, 但在此进去后直接返回 true(主要和前继节点的状态是否是 signal))</span></div><div class="line">                    nanosTimeout &gt; spinForTimeoutThreshold)&#123;<span class="comment">// 7. 在timeout 小于  spinForTimeoutThreshold 时 spin 的效率, 比 LockSupport 更高</span></div><div class="line">                LockSupport.parkNanos(<span class="keyword">this</span>, nanosTimeout);</div><div class="line">            &#125;</div><div class="line">            <span class="keyword">if</span>(Thread.interrupted())&#123;                           <span class="comment">// 7. 若此次唤醒是 通过线程中断, 则直接抛出异常</span></div><div class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> InterruptedException();</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;<span class="keyword">finally</span> &#123;</div><div class="line">        <span class="keyword">if</span> (failed)&#123;                <span class="comment">// 8. 在整个获取中出错(比如线程中断/超时)</span></div><div class="line">            cancelAcquire(node);    <span class="comment">// 10. 清除 node 节点(清除的过程是先给 node 打上 CANCELLED标志, 然后再删除)</span></div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="AbstractQueuedSynchronizer-释放共享lock-方法"><a href="#AbstractQueuedSynchronizer-释放共享lock-方法" class="headerlink" title="AbstractQueuedSynchronizer 释放共享lock 方法"></a>AbstractQueuedSynchronizer 释放共享lock 方法</h3><p>特点: 当 Sync Queue中存在连续多个获取 共享lock的节点时, 会出现并发的唤醒后继节点(因为共享模式下获取lock后会唤醒近邻的后继节点来获取lock)</p>
+<p>流程:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">1. 调用子类的 tryReleaseShared来进行释放 lock</div><div class="line">2. 判断是否需要唤醒后继节点来获取 lock</div></pre></td></tr></table></figure>
+<p>调用流分类</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">场景1: Sync Queue 里面存在 : 1(共享) -&gt; 2(共享) -&gt; 3(共享) -&gt; 4(共享)</div><div class="line">   节点1获取 lock 后调用 setHeadAndPropagate -&gt; doReleaseShared 唤醒 节点2 —&gt; 接下来 node 1 在 release 时再次 doReleaseShared, 而 node 2在获取 lock 后调用 setHeadAndPropagate 时再次 doReleaseShared -&gt; 直至到 node 4, node 4的状态变成 PROPAGATE (期间可能有些节点还没设置为 PROPAGATE 就被其他节点调用 setHead 而踢出 Sync Queue)</div><div class="line"></div><div class="line">场景2: Sync Queue 里面存在 : 1(共享) -&gt; 2(共享) -&gt; 3(独占) -&gt; 4(共享)</div><div class="line">   节点1获取 lock 后调用 setHeadAndPropagate -&gt; doReleaseShared 唤醒 节点2 —&gt; 接下来 node 1 在 release 时再次 doReleaseShared, 而 node 2 在获取 lock 后</div><div class="line">   这是发现后继节点不是共享的, 则 Node 2 不在 setHeadAndPropagate 中调用 doReleaseShared, 而Node 3 没有获取lock, 将 Node 2 变成 SIGNAL, 而 node 2 在 release lock 时唤醒 node 3, 而 node 3 最终在 release lock 时 释放 node 4， node 4在release lock后状态还是保持 0</div></pre></td></tr></table></figure>
+<p>看代码:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">doReleaseShared</span><span class="params">()</span></span>&#123;</div><div class="line"></div><div class="line">    <span class="keyword">for</span>(;;)&#123;</div><div class="line">        Node h = head;                      <span class="comment">// 1. 获取 head 节点, 准备 release</span></div><div class="line">        <span class="keyword">if</span>(h != <span class="keyword">null</span> &amp;&amp; h != tail)&#123;        <span class="comment">// 2. Sync Queue 里面不为 空</span></div><div class="line">            <span class="keyword">int</span> ws = h.waitStatus;</div><div class="line">            <span class="keyword">if</span>(ws == Node.SIGNAL)&#123;         <span class="comment">// 3. h节点后面可能是 独占的节点, 也可能是 共享的, 并且请求了唤醒(就是给前继节点打标记 SIGNAL)</span></div><div class="line">                <span class="keyword">if</span>(!compareAndSetWaitStatus(h, Node.SIGNAL, <span class="number">0</span>))&#123; <span class="comment">// 4. h 恢复  waitStatus 值置0 (为啥这里要用 CAS 呢, 因为这里的调用可能是在 节点刚刚获取 lock, 而其他线程又对其进行中断, 所用cas就出现失败)</span></div><div class="line">                    <span class="keyword">continue</span>; <span class="comment">// loop to recheck cases</span></div><div class="line">                &#125;</div><div class="line">                unparkSuccessor(h);         <span class="comment">// 5. 唤醒后继节点</span></div><div class="line">            &#125;</div><div class="line">            <span class="keyword">else</span> <span class="keyword">if</span>(ws == <span class="number">0</span> &amp;&amp;</div><div class="line">                    !compareAndSetWaitStatus(h, <span class="number">0</span>, Node.PROPAGATE))&#123; <span class="comment">//6. h后面没有节点需要唤醒, 则标识为 PROPAGATE 表示需要继续传递唤醒(主要是区别 独占节点最终状态0 (独占的节点在没有后继节点, 并且release lock 时最终 waitStatus 保存为 0))</span></div><div class="line">                <span class="keyword">continue</span>; <span class="comment">// loop on failed CAS // 7. 同样这里可能存在竞争</span></div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="keyword">if</span>(h == head)&#123; <span class="comment">// 8. head 节点没变化, 直接 return(从这里也看出, 一个共享模式的 节点在其唤醒后继节点时, 只唤醒一个, 但是 它会在 获取 lock 时唤醒, 释放 lock 时也进行, 所以或导致竞争的操作)</span></div><div class="line">            <span class="keyword">break</span>;           <span class="comment">// head 变化了, 说明其他节点获取 lock 了, 自己的任务完成, 直接退出</span></div><div class="line">        &#125;</div><div class="line"></div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="AbstractQueuedSynchronizer-判断是否阻塞线程方法-shouldParkAfterFailedAcquire"><a href="#AbstractQueuedSynchronizer-判断是否阻塞线程方法-shouldParkAfterFailedAcquire" class="headerlink" title="AbstractQueuedSynchronizer 判断是否阻塞线程方法 shouldParkAfterFailedAcquire"></a>AbstractQueuedSynchronizer 判断是否阻塞线程方法 shouldParkAfterFailedAcquire</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line"> * shouldParkAfterFailedAcquire 这个方法最终的作用:</div><div class="line"> *  本节点在进行 sleep 前一定需要给 前继节点打上 SIGNAL 标识(</div><div class="line"> *  因为前继节点在 release lock 时会根据 这个标识决定是否需要唤醒后继节点来获取 lock,</div><div class="line"> *  若释放时 标识是0, 则说明 Sync queue 里面没有等待获取lock的线程, 或Sync queue里面的节点正在获取 lock)</div><div class="line"> *</div><div class="line"> *  一般流程:</div><div class="line"> *      1. 第一次进入此方法 前继节点状态是 0, 则 CAS 为SIGNAL 返回 false(干嘛返回的是FALSE &lt;- 主要是为了再次 tryAcquire 一下, 说不定就能获取锁呢)</div><div class="line"> *      2. 第二次进来 前继节点标志为SIGNAL, ok, 标识好了, 这下就可以安心睡觉, 不怕前继节点在释放lock后不进行唤醒我了</div><div class="line"> */</div><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">shouldParkAfterFailedAcquire</span><span class="params">(Node pred, Node node)</span></span>&#123;</div><div class="line">    <span class="keyword">int</span> ws = pred.waitStatus;</div><div class="line">    <span class="keyword">if</span>(ws == Node.SIGNAL)&#123;                                      <span class="comment">// 1. 判断是否已经给前继节点打上标识SIGNAL, 为前继节点释放 lock 时唤醒自己做准备</span></div><div class="line">        <span class="comment">/**</span></div><div class="line">         * This node has already set status asking a release</div><div class="line">         * to signal it, so it can safely park</div><div class="line">         */</div><div class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">if</span>(ws &gt; <span class="number">0</span>)&#123;                                                 <span class="comment">// 2. 遇到个 CANCELLED 的节点 (ws &gt; 0 只可能是 CANCELLED 的节点, 也就是 获取中被中断, 或超时的节点)</span></div><div class="line">        <span class="comment">/**                                                     // 这里我们帮助删除</span></div><div class="line">         * Predecessor was cancelled. Skip over predecessors and</div><div class="line">         * indicate retry</div><div class="line">         */</div><div class="line">        <span class="keyword">do</span>&#123;</div><div class="line">            node.prev = pred = pred.prev;                    <span class="comment">// 3. 跳过所有 CANCELLED 的节点</span></div><div class="line">        &#125;<span class="keyword">while</span>(pred.waitStatus &gt; <span class="number">0</span>);</div><div class="line">        pred.next = node;                                    <span class="comment">// 跳过 CANCELLED 节点</span></div><div class="line">    &#125;</div><div class="line">    <span class="keyword">else</span>&#123;</div><div class="line">        <span class="comment">/**</span></div><div class="line">         * waitStatus must be 0 or PROPAGATE. Indicate that we</div><div class="line">         * need a signal, but don't park yet. Caller will need to</div><div class="line">         * retry to make sure it cannot acquire before parking</div><div class="line">         */</div><div class="line">        compareAndSetWaitStatus(pred, ws, Node.SIGNAL);     <span class="comment">// 4. 到这里 ws 只可能是 0 或 PROPAGATE (用于 共享模式的, 所以在共享模式中的提醒前继节点唤醒自己的方式,</span></div><div class="line">                                                            <span class="comment">// 也是给前继节点打上 SIGNAL标识 见 方法 "doReleaseShared" -&gt; "!compareAndSetWaitStatus(h, Node.SIGNAL, 0)" -&gt; unparkSuccessor)</span></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="AbstractQueuedSynchronizer-线程自己中断方法selfInterrupt"><a href="#AbstractQueuedSynchronizer-线程自己中断方法selfInterrupt" class="headerlink" title="AbstractQueuedSynchronizer 线程自己中断方法selfInterrupt"></a>AbstractQueuedSynchronizer 线程自己中断方法selfInterrupt</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line"> * 自我中断, 这主要是怕外面的线程不知道整个获取的过程中是否中断过, 所以才 ....</div><div class="line"> */</div><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">selfInterrupt</span><span class="params">()</span></span>&#123;</div><div class="line">    Thread.currentThread().interrupt();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="AbstractQueuedSynchronizer-中断线程方法parkAndCheckInterrupt"><a href="#AbstractQueuedSynchronizer-中断线程方法parkAndCheckInterrupt" class="headerlink" title="AbstractQueuedSynchronizer 中断线程方法parkAndCheckInterrupt"></a>AbstractQueuedSynchronizer 中断线程方法parkAndCheckInterrupt</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line"> * 中断当前线程, 并且返回此次的唤醒是否是通过中断</div><div class="line"> */</div><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">parkAndCheckInterrupt</span><span class="params">()</span> </span>&#123;</div><div class="line">    LockSupport.park(<span class="keyword">this</span>);</div><div class="line">    logger.info(Thread.currentThread().getName() + <span class="string">" "</span> + <span class="string">"parkAndCheckInterrupt , ThreadName:"</span> + Thread.currentThread().getName());</div><div class="line">    <span class="keyword">return</span> Thread.interrupted(); <span class="comment">//  Thread.interrupted() 会清除中断标识, 并返上次的中断标识</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h2 id="AbstractQueuedSynchronizer-一般方法"><a href="#AbstractQueuedSynchronizer-一般方法" class="headerlink" title="AbstractQueuedSynchronizer 一般方法"></a>AbstractQueuedSynchronizer 一般方法</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div><div class="line">120</div><div class="line">121</div><div class="line">122</div><div class="line">123</div><div class="line">124</div><div class="line">125</div><div class="line">126</div><div class="line">127</div><div class="line">128</div><div class="line">129</div><div class="line">130</div><div class="line">131</div><div class="line">132</div><div class="line">133</div><div class="line">134</div><div class="line">135</div><div class="line">136</div><div class="line">137</div><div class="line">138</div><div class="line">139</div><div class="line">140</div><div class="line">141</div><div class="line">142</div><div class="line">143</div><div class="line">144</div><div class="line">145</div><div class="line">146</div><div class="line">147</div><div class="line">148</div><div class="line">149</div><div class="line">150</div><div class="line">151</div><div class="line">152</div><div class="line">153</div><div class="line">154</div><div class="line">155</div><div class="line">156</div><div class="line">157</div><div class="line">158</div><div class="line">159</div><div class="line">160</div><div class="line">161</div><div class="line">162</div><div class="line">163</div><div class="line">164</div><div class="line">165</div><div class="line">166</div><div class="line">167</div><div class="line">168</div><div class="line">169</div><div class="line">170</div><div class="line">171</div><div class="line">172</div><div class="line">173</div><div class="line">174</div><div class="line">175</div><div class="line">176</div><div class="line">177</div><div class="line">178</div><div class="line">179</div><div class="line">180</div><div class="line">181</div><div class="line">182</div><div class="line">183</div><div class="line">184</div><div class="line">185</div><div class="line">186</div><div class="line">187</div><div class="line">188</div><div class="line">189</div><div class="line">190</div><div class="line">191</div><div class="line">192</div><div class="line">193</div><div class="line">194</div><div class="line">195</div><div class="line">196</div><div class="line">197</div><div class="line">198</div><div class="line">199</div><div class="line">200</div><div class="line">201</div><div class="line">202</div><div class="line">203</div><div class="line">204</div><div class="line">205</div><div class="line">206</div><div class="line">207</div><div class="line">208</div><div class="line">209</div><div class="line">210</div><div class="line">211</div><div class="line">212</div><div class="line">213</div><div class="line">214</div><div class="line">215</div><div class="line">216</div><div class="line">217</div><div class="line">218</div><div class="line">219</div><div class="line">220</div><div class="line">221</div><div class="line">222</div><div class="line">223</div><div class="line">224</div><div class="line">225</div><div class="line">226</div><div class="line">227</div><div class="line">228</div><div class="line">229</div><div class="line">230</div><div class="line">231</div></pre></td><td class="code"><pre><div class="line"> <span class="comment">//  SyncQueue 里面是否有 node 节点</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">hasQueuedThreads</span><span class="params">()</span> </span>&#123;</div><div class="line">    <span class="keyword">return</span> head != tail;</div><div class="line">&#125;</div><div class="line"></div><div class="line"> <span class="comment">// 获取 lock 是否发生竞争</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">hasContented</span><span class="params">()</span></span>&#123;</div><div class="line">    <span class="keyword">return</span> head != <span class="keyword">null</span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line"> <span class="comment">// Sync Queue 里面的有效的, 最前面的 node 节点</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> Thread <span class="title">getFirstQueuedThread</span><span class="params">()</span></span>&#123;</div><div class="line">    <span class="keyword">return</span> (head == tail) ? <span class="keyword">null</span> : fullGetFirstQueuedThread();</div><div class="line">&#125;</div><div class="line"></div><div class="line"> <span class="comment">// Sync Queue 里面的有效的, 最前面的 node 节点</span></div><div class="line"><span class="function"><span class="keyword">private</span> Thread <span class="title">fullGetFirstQueuedThread</span><span class="params">()</span></span>&#123;</div><div class="line"></div><div class="line">    Node h, s;</div><div class="line">    Thread st;</div><div class="line">     <span class="comment">// 这里两次检测是怕线程 timeout 或 cancelled</span></div><div class="line">    <span class="keyword">if</span>((</div><div class="line">            (h = head) != <span class="keyword">null</span> &amp;&amp; (s = h.next) != <span class="keyword">null</span> &amp;&amp;</div><div class="line">                    s.prev == head &amp;&amp; (st = s.thread) != <span class="keyword">null</span> ||</div><div class="line">                    (</div><div class="line">                            (h = head) != <span class="keyword">null</span> &amp;&amp; (s = h.next) != <span class="keyword">null</span> &amp;&amp;</div><div class="line">                                    s.prev == head &amp;&amp; (st = s.thread) != <span class="keyword">null</span></div><div class="line">                            )</div><div class="line">            ))&#123;</div><div class="line">        <span class="keyword">return</span> st;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">     <span class="comment">// 从 tail 开始找</span></div><div class="line">    Node t = tail;</div><div class="line">    Thread firstThread = <span class="keyword">null</span>;</div><div class="line">    <span class="keyword">while</span>(t != <span class="keyword">null</span> &amp;&amp; t != head)&#123;</div><div class="line">        Thread tt = t.thread;</div><div class="line">        <span class="keyword">if</span>(tt != <span class="keyword">null</span>)&#123;</div><div class="line">            firstThread = tt;</div><div class="line">        &#125;</div><div class="line">        t = t.prev;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> firstThread;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// 判断线程是否在 Sync Queue 里面</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">isQueued</span><span class="params">(Thread thread)</span></span>&#123;</div><div class="line">    <span class="keyword">if</span>(thread == <span class="keyword">null</span>)&#123;</div><div class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> NullPointerException();</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">for</span>(Node p = tail; p != <span class="keyword">null</span>; p = p.prev)&#123; <span class="comment">// 从tail 开始</span></div><div class="line">        <span class="keyword">if</span>(p.thread == thread)&#123;</div><div class="line">            <span class="keyword">return</span> <span class="keyword">true</span>;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line"> <span class="comment">// 判断 Sync Queue 中等待获取 lock 的第一个 node 是否是 获取 writeLock 的(head 节点是已经获取 lock 的节点)</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">apparentlyFirstQueuedIsExclusive</span><span class="params">()</span></span>&#123;</div><div class="line">    Node h, s;</div><div class="line">    <span class="keyword">return</span> (h = head) != <span class="keyword">null</span> &amp;&amp;</div><div class="line">            (s = h.next) != <span class="keyword">null</span> &amp;&amp;</div><div class="line">            !s.isShared()       &amp;&amp;</div><div class="line">            s.thread != <span class="keyword">null</span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line"> <span class="comment">// 当前节点之前在 Sync Queue 里面是否有等待获取的 Node</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">hasQueuedPredecessors</span><span class="params">()</span></span>&#123;</div><div class="line"></div><div class="line">    Node t = tail; <span class="comment">// Read fields in reverse initialization order</span></div><div class="line">    Node h = head;</div><div class="line">    Node s;</div><div class="line">    <span class="keyword">return</span> h != t &amp;&amp;        <span class="comment">// h != t 表示 Sync Queu 里面至少存在 一个节点 (这时的 h节点可能是 null)</span></div><div class="line">            ((s = h.next) == <span class="keyword">null</span> || s.thread != Thread.currentThread()); <span class="comment">// (s = h.next) == null 说明 h节点获取 lock, 而后又被其他获取 lock 的节点从 Sync Queue 里面剔除掉了</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"></div><div class="line"><span class="comment">/********************************************* Instrumentation and monitoring methods **************************/</span></div><div class="line"></div><div class="line"> <span class="comment">// 获取 Sync Queue 里面 等待 获取 lock 的 长度</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">int</span> <span class="title">getQueueLength</span><span class="params">()</span></span>&#123;</div><div class="line">    <span class="keyword">int</span> n = <span class="number">0</span>;</div><div class="line">    <span class="keyword">for</span>(Node p = tail; p != <span class="keyword">null</span>; p = p.prev)&#123;</div><div class="line">        <span class="keyword">if</span>(p.thread != <span class="keyword">null</span>)&#123;</div><div class="line">            ++n;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> n;</div><div class="line">&#125;</div><div class="line"></div><div class="line"> <span class="comment">// 获取 Sync Queue 里面 等待 获取 lock 的 thread</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> Collection&lt;Thread&gt; <span class="title">getQueuedThreads</span><span class="params">()</span></span>&#123;</div><div class="line">    ArrayList&lt;Thread&gt; list = <span class="keyword">new</span> ArrayList&lt;&gt;();</div><div class="line">    <span class="keyword">for</span>(Node p = tail; p != <span class="keyword">null</span>; p = p.prev)&#123;</div><div class="line">        Thread t = p.thread;</div><div class="line">        <span class="keyword">if</span>(t != <span class="keyword">null</span>)&#123;</div><div class="line">            list.add(t);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> list;</div><div class="line">&#125;</div><div class="line"></div><div class="line"> <span class="comment">// 获取 Sync Queue 里面 等待 获取 writeLock 的 thread</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> Collection&lt;Thread&gt; <span class="title">getExclusiveQueuedThreads</span><span class="params">()</span></span>&#123;</div><div class="line">    ArrayList&lt;Thread&gt; list = <span class="keyword">new</span> ArrayList&lt;&gt;();</div><div class="line">    <span class="keyword">for</span>(Node p = tail; p != <span class="keyword">null</span>; p = p.prev)&#123;</div><div class="line">        <span class="keyword">if</span>(!p.isShared())&#123;</div><div class="line">            Thread t = p.thread;</div><div class="line">            <span class="keyword">if</span>(t != <span class="keyword">null</span>)&#123;</div><div class="line">                list.add(t);</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> list;</div><div class="line">&#125;</div><div class="line"></div><div class="line"> <span class="comment">// 获取 Sync Queue 里面 等待 获取 readLock 的 thread</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> Collection&lt;Thread&gt; <span class="title">getSharedQueuedThreads</span><span class="params">()</span></span>&#123;</div><div class="line">    ArrayList&lt;Thread&gt; list = <span class="keyword">new</span> ArrayList&lt;&gt;();</div><div class="line">    <span class="keyword">for</span>(Node p = tail; p != <span class="keyword">null</span>; p = p.prev)&#123;</div><div class="line">        <span class="keyword">if</span>(p.isShared())&#123;</div><div class="line">            Thread t = p.thread;</div><div class="line">            <span class="keyword">if</span>(t != <span class="keyword">null</span>)&#123;</div><div class="line">                list.add(t);</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> list;</div><div class="line">&#125;</div><div class="line"></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">public</span> String <span class="title">toString</span><span class="params">()</span></span>&#123;</div><div class="line">    <span class="keyword">int</span> s = getState();</div><div class="line">    String q = hasQueuedThreads() ? <span class="string">"non"</span> : <span class="string">""</span>;</div><div class="line">    <span class="keyword">return</span> <span class="keyword">super</span>.toString() + <span class="string">"[State = "</span> + s + <span class="string">", "</span> + q + <span class="string">" empty queue]"</span>;</div><div class="line">&#125;</div><div class="line"><span class="comment">/*********************** Internal support methods for Conditions ***********************/</span></div><div class="line"></div><div class="line"> <span class="comment">// 判断 node 是否在 Sync Queue 里面</span></div><div class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">isOnSyncQueue</span><span class="params">(Node node)</span></span>&#123;</div><div class="line">    <span class="comment">/**</span></div><div class="line">     * 这里有点 tricky,</div><div class="line">     * node.waitStatus == Node.CONDITION 则说明 node 一定在 Condition 里面</div><div class="line">     * node.prev == null 说明 node 一定不在 Sync Queue 里面</div><div class="line">     */</div><div class="line">    <span class="keyword">if</span>(node.waitStatus == Node.CONDITION || node.prev == <span class="keyword">null</span>)&#123;</div><div class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">    &#125;</div><div class="line">    <span class="comment">// node.next != null 则 node 一定在 Sync Queue; 但是反过来 在Sync Queue 里面的节点 不一定  node.next != null</span></div><div class="line">    <span class="keyword">if</span>(node.next != <span class="keyword">null</span>)&#123; <span class="comment">// If has successor, it must be on queue</span></div><div class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</div><div class="line">    &#125;</div><div class="line">     <span class="comment">// 因为这里存在 node 开始enq Sync Queue 的情形, 所以在此查找一下</span></div><div class="line">    <span class="keyword">return</span> findNodeFromTail(node);</div><div class="line">&#125;</div><div class="line"></div><div class="line"> <span class="comment">// 从 tail 开始查找 node</span></div><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">boolean</span> <span class="title">findNodeFromTail</span><span class="params">(Node node)</span></span>&#123;</div><div class="line">    Node t = tail;</div><div class="line">    <span class="keyword">for</span>(;;)&#123;</div><div class="line">        <span class="keyword">if</span>(t == node)&#123;</div><div class="line">            <span class="keyword">return</span> <span class="keyword">true</span>;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">if</span>(t == <span class="keyword">null</span>)&#123;</div><div class="line">            <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">        &#125;</div><div class="line">        t = t.prev;</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"> <span class="comment">// 将 Node 从Condition Queue 转移到 Sync Queue 里面</span></div><div class="line"> <span class="comment">// 在调用transferForSignal之前, 会 first.nextWaiter = null;</span></div><div class="line"> <span class="comment">// 而我们发现 若节点是因为 timeout / interrupt 进行转移, 则不会清除两种情况的转移都会把 wautStatus 置为 0</span></div><div class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">transferForSignal</span><span class="params">(Node node)</span></span>&#123;</div><div class="line">    <span class="keyword">if</span>(!compareAndSetWaitStatus(node, Node.CONDITION, <span class="number">0</span>))&#123; <span class="comment">// 1. 若 node 已经 cancelled 则失败</span></div><div class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    Node p = enq(node);                                 <span class="comment">// 2. 加入 Sync Queue</span></div><div class="line">    <span class="keyword">int</span> ws = p.waitStatus;</div><div class="line">      <span class="comment">// 3. 这里的 ws &gt; 0 指Sync Queue 中node 的前继节点cancelled 了, 所以, 唤醒一下 node ; compareAndSetWaitStatus(p, ws, Node.SIGNAL)失败, 则说明 前继节点已经变成 SIGNAL 或 cancelled, 所以也要 唤醒</span></div><div class="line">    <span class="keyword">if</span>(ws &gt; <span class="number">0</span> || !compareAndSetWaitStatus(p, ws, Node.SIGNAL))&#123; </div><div class="line">          LockSupport.unpark(node.thread);</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> <span class="keyword">true</span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// 将 Condition Queue 中因 timeout/interrupt 而唤醒的节点进行转移</span></div><div class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">transferAfterCancelledWait</span><span class="params">(Node node)</span></span>&#123;</div><div class="line">    <span class="keyword">if</span>(compareAndSetWaitStatus(node, Node.CONDITION, <span class="number">0</span>))&#123; <span class="comment">// 1. 没有 node 没有 cancelled , 直接进行转移 (转移后, Sync Queue , Condition Queue 都会存在 node)</span></div><div class="line">        enq(node);</div><div class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">while</span>(!isOnSyncQueue(node))&#123;                <span class="comment">// 2.这时是其他的线程发送signal,将本线程转移到 Sync Queue 里面的工程中(转移的过程中 waitStatus = 0了, 所以上面的 CAS 操作失败)</span></div><div class="line">        Thread.yield();                         <span class="comment">// 这里调用 isOnSyncQueue判断是否已经 入Sync Queue 了</span></div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/******************** Instrumentation methods for conditions ***************/</span></div><div class="line"></div><div class="line"> <span class="comment">// condition 是否属于这个 AQS 的</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">owns</span><span class="params">(ConditionObject condition)</span></span>&#123;</div><div class="line">    <span class="keyword">return</span> condition.isOwnedBy(<span class="keyword">this</span>);</div><div class="line">&#125;</div><div class="line"></div><div class="line"> <span class="comment">// 这个 condition Queue 里面是否有等待的线程</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">hasWaiters</span><span class="params">(ConditionObject condition)</span></span>&#123;</div><div class="line">    <span class="keyword">if</span>(!owns(condition))&#123;</div><div class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException();</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> condition.hasWaiters();</div><div class="line">&#125;</div><div class="line"></div><div class="line"> <span class="comment">// 这个 condition Queue 里面等待的线程的量</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">int</span> <span class="title">getWaitQueueLength</span><span class="params">(ConditionObject condition)</span></span>&#123;</div><div class="line">    <span class="keyword">if</span>(!owns(condition))&#123;</div><div class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"Not owner"</span>);</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> condition.getWaitQueueLength();</div><div class="line">&#125;</div><div class="line"></div><div class="line"> <span class="comment">// 这个 condition Queue 里面等待的线程</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> Collection&lt;Thread&gt; <span class="title">getWaitingThreads</span><span class="params">(ConditionObject condition)</span></span>&#123;</div><div class="line">    <span class="keyword">if</span>(!owns(condition))&#123;</div><div class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"not owner"</span>);</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> condition.getWaitingThreads();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>AQS 主要由 Node, Condition Queue, Sync Queue, 独占获取lock, 共享获取lock 这几部分组成; 它 JUC 中lock及lock的工具类的基础构件, 理解了AQS, 就能很好理解<a href="http://www.jianshu.com/p/3f3417dbcac4" target="_blank" rel="external">ReeantrantLock</a>, <a href="http://www.jianshu.com/p/52089c4eefdd" target="_blank" rel="external">Condition</a>, <a href="http://www.jianshu.com/p/6923c126e762" target="_blank" rel="external">ReeantrantReadWriteLock</a>;</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ol>
+<li><a href="http://gee.cs.oswego.edu/dl/papers/aqs.pdf" target="_blank" rel="external">The java.util.concurrent Synchronizer Framework</a> (这是AQS作者写的, 强烈建议看一下)</li>
+<li><a href="http://www.cnblogs.com/go2sea/p/5618628.html" target="_blank" rel="external">Java多线程之JUC包：AbstractQueuedSynchronizer（AQS）源码学习笔记</a></li>
+<li><a href="http://ifeve.com/introduce-abstractqueuedsynchronizer/" target="_blank" rel="external">AbstractQueuedSynchronizer的介绍和原理分析</a></li>
+<li><a href="http://blog.csdn.net/yuenkin/article/details/50867530" target="_blank" rel="external">Java 1.6 AbstractQueuedSynchronizer源码解析</a></li>
+<li><a href="http://brokendreams.iteye.com/blog/2250372" target="_blank" rel="external">Jdk1.6 JUC源码解析(6)-locks-AbstractQueuedSynchronizer</a></li>
+<li><a href="http://www.cnblogs.com/leesf456/p/5350186.html" target="_blank" rel="external">JDK1.8源码分析之AbstractQueuedSynchronizer（二）</a></li>
+<li><a href="http://www.ctolib.com/topics-96684.html?from=singlemessage&amp;isappinstalled=0" target="_blank" rel="external">java并发锁ReentrantReadWriteLock读写锁源码分析</a></li>
+<li><a href="http://www.ibm.com/developerworks/cn/java/j-jtp04186/" target="_blank" rel="external">Java 理论与实践: 非阻塞算法简介</a></li>
+</ol>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Java/" rel="tag"># Java</a>
+          
+            <a href="/tags/多线程/" rel="tag"># 多线程</a>
+          
+        </div>
+      
+
+      
+        
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/05/15/Java多线程基础/" rel="next" title="Java多线程基础">
+                <i class="fa fa-chevron-left"></i> Java多线程基础
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/05/20/LVS FULLNAT部署问题/" rel="prev" title="LVS FULLNAT RealServer安装">
+                LVS FULLNAT RealServer安装 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="cloud-tie-wrapper" class="cloud-tie-wrapper"></div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.png"
+               alt="[object Object]" />
+          <p class="site-author-name" itemprop="name">[object Object]</p>
+           
+              <p class="site-description motion-element" itemprop="description">Hadoop, Spark, OpenStack，Docker</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">29</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">12</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">12</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/iclouding" target="_blank" title="Github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  Github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.cnblogs.com/icloud/" target="_blank" title="博客园">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  博客园
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+        
+        
+    <div class="links-of-blogroll motion-element links-of-blogroll-block">
+      <div class="links-of-blogroll-title">
+        <!-- modify icon to fire by szw -->
+        <i class="fa fa-history fa-" aria-hidden="true"></i>
+        近期文章
+      </div>
+          <ul class="links-of-blogroll-list">
+            
+            
+              <li>
+                <a href="/2020/01/01/2017-05-27博客收录/" title="博客收录" target="_blank">博客收录</a>
+              </li>
+            
+              <li>
+                <a href="/2017/12/08/Hadoop序列化/" title="Hadoop序列化" target="_blank">Hadoop序列化</a>
+              </li>
+            
+              <li>
+                <a href="/2017/09/29/2017-09-29Superset数据分析与使用/" title="2017-09-29Superset数据分析与使用" target="_blank">2017-09-29Superset数据分析与使用</a>
+              </li>
+            
+              <li>
+                <a href="/2017/09/22/2017-09-22Spark1-X和2-X编译部署/" title="2017-09-22Spark1.X和2.X编译部署" target="_blank">2017-09-22Spark1.X和2.X编译部署</a>
+              </li>
+            
+              <li>
+                <a href="/2017/09/19/2017-09-19Spark机器学习之聚类/" title="2017-09-19Spark机器学习之聚类" target="_blank">2017-09-19Spark机器学习之聚类</a>
+              </li>
+            
+              </ul>
+            </div>
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#AbstractQueuedSynchronizer源码解析"><span class="nav-number">1.</span> <span class="nav-text">AbstractQueuedSynchronizer源码解析</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#AbstractQueuedSynchronizer-定义"><span class="nav-number">1.1.</span> <span class="nav-text">AbstractQueuedSynchronizer 定义</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#AbstractQueuedSynchronizer-内部类-Node"><span class="nav-number">1.2.</span> <span class="nav-text">AbstractQueuedSynchronizer 内部类 Node</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#AbstractQueuedSynchronizer-内部Queue-Condition-Queue"><span class="nav-number">1.3.</span> <span class="nav-text">AbstractQueuedSynchronizer 内部Queue Condition Queue</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Condition-Queue-入队列方法-addConditionWaiter"><span class="nav-number">1.3.1.</span> <span class="nav-text">Condition Queue 入队列方法 addConditionWaiter</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Condition-Queue-删除Cancelled节点的方法-unlinkCancelledWaiters"><span class="nav-number">1.3.2.</span> <span class="nav-text">Condition Queue 删除Cancelled节点的方法 unlinkCancelledWaiters</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Condition-Queue-转移节点的方法-transferForSignal"><span class="nav-number">1.3.3.</span> <span class="nav-text">Condition Queue 转移节点的方法 transferForSignal</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Condition-Queue-转移节点的方法-transferAfterCancelledWait"><span class="nav-number">1.3.4.</span> <span class="nav-text">Condition Queue 转移节点的方法 transferAfterCancelledWait</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#AbstractQueuedSynchronizer-内部Queue-Sync-Queue"><span class="nav-number">1.4.</span> <span class="nav-text">AbstractQueuedSynchronizer 内部Queue Sync Queue</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Sync-Queue-节点入Queue方法"><span class="nav-number">1.4.1.</span> <span class="nav-text">Sync Queue 节点入Queue方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Sync-Queue-节点出Queue方法"><span class="nav-number">1.4.2.</span> <span class="nav-text">Sync Queue 节点出Queue方法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#AbstractQueuedSynchronizer常用方法"><span class="nav-number">1.5.</span> <span class="nav-text">AbstractQueuedSynchronizer常用方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#AbstractQueuedSynchronizer-独占的获取lock"><span class="nav-number">1.6.</span> <span class="nav-text">AbstractQueuedSynchronizer 独占的获取lock</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#AbstractQueuedSynchronizer-独占的获取lock-方法-acquire"><span class="nav-number">1.6.1.</span> <span class="nav-text">AbstractQueuedSynchronizer 独占的获取lock 方法 acquire</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#AbstractQueuedSynchronizer-循环获取lock-方法-acquireQueued"><span class="nav-number">1.6.2.</span> <span class="nav-text">AbstractQueuedSynchronizer 循环获取lock 方法 acquireQueued</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#AbstractQueuedSynchronizer-支持中断获取lock-方法-doAcquireInterruptibly"><span class="nav-number">1.6.3.</span> <span class="nav-text">AbstractQueuedSynchronizer 支持中断获取lock 方法 doAcquireInterruptibly</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#AbstractQueuedSynchronizer-支持超时-amp-中断获取lock-方法-doAcquireNanos-int-arg-long-nanosTimeout"><span class="nav-number">1.6.4.</span> <span class="nav-text">AbstractQueuedSynchronizer 支持超时&中断获取lock 方法 doAcquireNanos(int arg, long nanosTimeout)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#AbstractQueuedSynchronizer-释放lock方法"><span class="nav-number">1.6.5.</span> <span class="nav-text">AbstractQueuedSynchronizer 释放lock方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#AbstractQueuedSynchronizer-获取共享lock"><span class="nav-number">1.6.6.</span> <span class="nav-text">AbstractQueuedSynchronizer 获取共享lock</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#AbstractQueuedSynchronizer-获取共享lock-方法-acquireShared"><span class="nav-number">1.6.7.</span> <span class="nav-text">AbstractQueuedSynchronizer 获取共享lock 方法 acquireShared</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#AbstractQueuedSynchronizer-获取共享lock-方法-doAcquireShared"><span class="nav-number">1.6.8.</span> <span class="nav-text">AbstractQueuedSynchronizer 获取共享lock 方法 doAcquireShared</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#AbstractQueuedSynchronizer-获取共享lock-方法-doAcquireSharedInterruptibly"><span class="nav-number">1.6.9.</span> <span class="nav-text">AbstractQueuedSynchronizer 获取共享lock 方法 doAcquireSharedInterruptibly</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#AbstractQueuedSynchronizer-获取共享lock-方法-doAcquireSharedNanos"><span class="nav-number">1.6.10.</span> <span class="nav-text">AbstractQueuedSynchronizer 获取共享lock 方法 doAcquireSharedNanos</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#AbstractQueuedSynchronizer-释放共享lock-方法"><span class="nav-number">1.6.11.</span> <span class="nav-text">AbstractQueuedSynchronizer 释放共享lock 方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#AbstractQueuedSynchronizer-判断是否阻塞线程方法-shouldParkAfterFailedAcquire"><span class="nav-number">1.6.12.</span> <span class="nav-text">AbstractQueuedSynchronizer 判断是否阻塞线程方法 shouldParkAfterFailedAcquire</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#AbstractQueuedSynchronizer-线程自己中断方法selfInterrupt"><span class="nav-number">1.6.13.</span> <span class="nav-text">AbstractQueuedSynchronizer 线程自己中断方法selfInterrupt</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#AbstractQueuedSynchronizer-中断线程方法parkAndCheckInterrupt"><span class="nav-number">1.6.14.</span> <span class="nav-text">AbstractQueuedSynchronizer 中断线程方法parkAndCheckInterrupt</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#AbstractQueuedSynchronizer-一般方法"><span class="nav-number">1.7.</span> <span class="nav-text">AbstractQueuedSynchronizer 一般方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">1.8.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考"><span class="nav-number">1.9.</span> <span class="nav-text">参考</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">iclouding</span>
+</div>
+
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.1"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+    
+    <script>
+      var cloudTieConfig = {
+        url: document.location.href, 
+        sourceId: "",
+        productKey: "e5e46c90da2d400e9a09f945448bb299",
+        target: "cloud-tie-wrapper"
+      };
+    </script>
+    <script src="https://img1.ws.126.net/f2e/tie/yun/sdk/loader.js"></script>
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("ExxAsfadHnGbfXNeH3Y3EoEQ-gzGzoHsz", "scr6biItx0UTfQik4OWLoR36");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  <script type="text/javascript" src="/js/src/js.cookie.js?v=5.1.1"></script>
+  <script type="text/javascript" src="/js/src/scroll-cookie.js?v=5.1.1"></script>
+
+
+  
+
+</body>
+</html>

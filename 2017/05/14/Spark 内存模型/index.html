@@ -1,0 +1,1049 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+  
+  
+  <link rel="stylesheet" media="all" href="/lib/Han/dist/han.min.css?v=3.3">
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Spark," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.1" />
+
+
+
+
+
+
+<meta name="description" content="Spark 内存模型[TOC]   Spark的内存模型，在1.6版本之后发生了变化，原先是StaticMemoryManager，现在改成了UnifiedMemoryManager，以及著名的ProjectTungsten为此，做个学习记录  Spark中的内存使用，主要分两部分：Execution和Storage。 堆内和堆外内存规划作为一个 JVM 进程，Executor 的内存管理建立在">
+<meta name="keywords" content="Spark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spark 内存模型">
+<meta property="og:url" content="http://yoursite.com/2017/05/14/Spark 内存模型/index.html">
+<meta property="og:site_name" content="大数据部落">
+<meta property="og:description" content="Spark 内存模型[TOC]   Spark的内存模型，在1.6版本之后发生了变化，原先是StaticMemoryManager，现在改成了UnifiedMemoryManager，以及著名的ProjectTungsten为此，做个学习记录  Spark中的内存使用，主要分两部分：Execution和Storage。 堆内和堆外内存规划作为一个 JVM 进程，Executor 的内存管理建立在">
+<meta property="og:image" content="https://www.ibm.com/developerworks/cn/analytics/library/ba-cn-apache-spark-memory-management/image001.png">
+<meta property="og:image" content="https://www.ibm.com/developerworks/cn/analytics/library/ba-cn-apache-spark-memory-management/image002.png">
+<meta property="og:image" content="https://www.ibm.com/developerworks/cn/analytics/library/ba-cn-apache-spark-memory-management/image003.png">
+<meta property="og:image" content="https://www.ibm.com/developerworks/cn/analytics/library/ba-cn-apache-spark-memory-management/image004.png">
+<meta property="og:image" content="https://www.ibm.com/developerworks/cn/analytics/library/ba-cn-apache-spark-memory-management/image005.png">
+<meta property="og:image" content="https://www.ibm.com/developerworks/cn/analytics/library/ba-cn-apache-spark-memory-management/image006.png">
+<meta property="og:image" content="https://www.ibm.com/developerworks/cn/analytics/library/ba-cn-apache-spark-memory-management/image007.png">
+<meta property="og:image" content="https://www.ibm.com/developerworks/cn/analytics/library/ba-cn-apache-spark-memory-management/image008.png">
+<meta property="og:updated_time" content="2017-12-08T05:13:49.315Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Spark 内存模型">
+<meta name="twitter:description" content="Spark 内存模型[TOC]   Spark的内存模型，在1.6版本之后发生了变化，原先是StaticMemoryManager，现在改成了UnifiedMemoryManager，以及著名的ProjectTungsten为此，做个学习记录  Spark中的内存使用，主要分两部分：Execution和Storage。 堆内和堆外内存规划作为一个 JVM 进程，Executor 的内存管理建立在">
+<meta name="twitter:image" content="https://www.ibm.com/developerworks/cn/analytics/library/ba-cn-apache-spark-memory-management/image001.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"always","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2017/05/14/Spark 内存模型/"/>
+
+
+
+
+
+  <title>Spark 内存模型 | 大数据部落</title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">大数据部落</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">Hadoop, Spark, OpenStack，Docker</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/05/14/Spark 内存模型/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="[object Object]">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="大数据部落">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Spark 内存模型</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-14T15:10:00+08:00">
+                2017-05-14
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2017-12-08T13:13:49+08:00">
+                2017-12-08
+              </time>
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Spark/" itemprop="url" rel="index">
+                    <span itemprop="name">Spark</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a class="cloud-tie-join-count" href="/2017/05/14/Spark 内存模型/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count join-count" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/2017/05/14/Spark 内存模型/" class="leancloud_visitors" data-flag-title="Spark 内存模型">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数 </span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    <div class="post-body han-init-context" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="Spark-内存模型"><a href="#Spark-内存模型" class="headerlink" title="Spark 内存模型"></a>Spark 内存模型</h1><p>[TOC]</p>
+<hr>
+<blockquote>
+<p>Spark的内存模型，在1.6版本之后发生了变化，原先是<code>StaticMemoryManager</code>，现在改成了<code>UnifiedMemoryManager</code>，以及著名的<code>ProjectTungsten</code>为此，做个学习记录</p>
+</blockquote>
+<p>Spark中的内存使用，主要分两部分：Execution和Storage。</p>
+<h2 id="堆内和堆外内存规划"><a href="#堆内和堆外内存规划" class="headerlink" title="堆内和堆外内存规划"></a>堆内和堆外内存规划</h2><p>作为一个 JVM 进程，Executor 的内存管理建立在 JVM 的内存管理之上，Spark 对 JVM 的堆内（On-heap）空间进行了更为详细的分配，以充分利用内存。同时，Spark 引入了堆外（Off-heap）内存，使之可以直接在工作节点的系统内存中开辟空间，进一步优化了内存的使用。</p>
+<p><img src="https://www.ibm.com/developerworks/cn/analytics/library/ba-cn-apache-spark-memory-management/image001.png" alt="img"></p>
+<h3 id="堆内内存"><a href="#堆内内存" class="headerlink" title="堆内内存"></a>堆内内存</h3><p>堆内内存的大小，由 Spark 应用程序启动时的 –executor-memory 或 spark.executor.memory 参数配置。Executor 内运行的并发任务共享 JVM 堆内内存，这些任务在缓存 RDD 数据和广播（Broadcast）数据时占用的内存被规划为存储（Storage）内存，而这些任务在执行 Shuffle 时占用的内存被规划为执行（Execution）内存，剩余的部分不做特殊规划，那些 Spark 内部的对象实例，或者用户定义的 Spark 应用程序中的对象实例，均占用剩余的空间。不同的管理模式下，这三部分占用的空间大小各不相同（下面第 2 小节会进行介绍）。</p>
+<p>Spark 对堆内内存的管理是一种逻辑上的”<strong>规划式</strong>“的管理，因为对象实例占用内存的申请和释放都由 JVM 完成，Spark 只能在申请后和释放前<strong>记录</strong>这些内存，我们来看其具体流程：</p>
+<ul>
+<li><strong>申请内存</strong>：</li>
+</ul>
+<ol>
+<li>Spark 在代码中 new 一个对象实例</li>
+<li>JVM 从堆内内存分配空间，创建对象并返回对象引用</li>
+<li>Spark 保存该对象的引用，记录该对象占用的内存</li>
+</ol>
+<ul>
+<li><strong>释放内存</strong>：</li>
+</ul>
+<ol>
+<li>Spark 记录该对象释放的内存，删除该对象的引用</li>
+<li>等待 JVM 的垃圾回收机制释放该对象占用的堆内内存</li>
+</ol>
+<p>我们知道，JVM 的对象可以以序列化的方式存储，序列化的过程是将对象转换为二进制字节流，本质上可以理解为将非连续空间的链式存储转化为连续空间或块存储，在访问时则需要进行序列化的逆过程——反序列化，将字节流转化为对象，序列化的方式可以节省存储空间，但增加了存储和读取时候的计算开销。</p>
+<p>对于 Spark 中序列化的对象，由于是字节流的形式，其占用的内存大小可直接计算，而对于非序列化的对象，其占用的内存是通过周期性地采样近似估算而得，即并不是每次新增的数据项都会计算一次占用的内存大小，这种方法降低了时间开销但是有可能误差较大，导致某一时刻的实际内存有可能远远超出预期[2]。此外，在被 Spark 标记为释放的对象实例，很有可能在实际上并没有被 JVM 回收，导致实际可用的内存小于 Spark 记录的可用内存。所以 Spark 并不能准确记录实际可用的堆内内存，从而也就无法完全避免内存溢出（OOM, Out of Memory）的异常。</p>
+<p>虽然不能精准控制堆内内存的申请和释放，但 Spark 通过对存储内存和执行内存各自独立的规划管理，可以决定是否要在存储内存里缓存新的 RDD，以及是否为新的任务分配执行内存，在一定程度上可以提升内存的利用率，减少异常的出现。</p>
+<h3 id="堆外内存"><a href="#堆外内存" class="headerlink" title="堆外内存"></a>堆外内存</h3><p>为了进一步优化内存的使用以及提高 Shuffle 时排序的效率，Spark 引入了堆外（Off-heap）内存，使之可以直接在工作节点的系统内存中开辟空间，存储经过序列化的二进制数据。利用 JDK Unsafe API（从 Spark 2.0 开始，在管理堆外的存储内存时不再基于 Tachyon，而是与堆外的执行内存一样，基于 JDK Unsafe API 实现[3]），Spark 可以直接操作系统堆外内存，减少了不必要的内存开销，以及频繁的 GC 扫描和回收，提升了处理性能。堆外内存可以被精确地申请和释放，而且序列化的数据占用的空间可以被精确计算，所以相比堆内内存来说降低了管理的难度，也降低了误差。</p>
+<p>在默认情况下堆外内存并不启用，可通过配置 <code>spark.memory.offHeap.enabled</code> 参数启用，并由 <code>spark.memory.offHeap.size</code> 参数设定堆外空间的大小。除了没有 other 空间，堆外内存与堆内内存的划分方式相同，所有运行中的并发任务共享存储内存和执行内存。</p>
+<h3 id="内存管理接口"><a href="#内存管理接口" class="headerlink" title="内存管理接口"></a>内存管理接口</h3><p>Spark 为存储内存和执行内存的管理提供了统一的接口——MemoryManager，同一个 Executor 内的任务都调用这个接口的方法来申请或释放内存:</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//申请存储内存</span></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">acquireStorageMemory</span></span>(blockId: <span class="type">BlockId</span>, numBytes: <span class="type">Long</span>, memoryMode: <span class="type">MemoryMode</span>): <span class="type">Boolean</span></div><div class="line"><span class="comment">//申请展开内存</span></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">acquireUnrollMemory</span></span>(blockId: <span class="type">BlockId</span>, numBytes: <span class="type">Long</span>, memoryMode: <span class="type">MemoryMode</span>): <span class="type">Boolean</span></div><div class="line"><span class="comment">//申请执行内存</span></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">acquireExecutionMemory</span></span>(numBytes: <span class="type">Long</span>, taskAttemptId: <span class="type">Long</span>, memoryMode: <span class="type">MemoryMode</span>): <span class="type">Long</span></div><div class="line"><span class="comment">//释放存储内存</span></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">releaseStorageMemory</span></span>(numBytes: <span class="type">Long</span>, memoryMode: <span class="type">MemoryMode</span>): <span class="type">Unit</span></div><div class="line"><span class="comment">//释放执行内存</span></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">releaseExecutionMemory</span></span>(numBytes: <span class="type">Long</span>, taskAttemptId: <span class="type">Long</span>, memoryMode: <span class="type">MemoryMode</span>): <span class="type">Unit</span></div><div class="line"><span class="comment">//释放展开内存</span></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">releaseUnrollMemory</span></span>(numBytes: <span class="type">Long</span>, memoryMode: <span class="type">MemoryMode</span>): <span class="type">Unit</span></div></pre></td></tr></table></figure>
+<p>我们看到，在调用这些方法时都需要指定其内存模式（MemoryMode），这个参数决定了是在堆内还是堆外完成这次操作。</p>
+<p>MemoryManager 的具体实现上，Spark 1.6 之后默认为统一管理（<a href="https://github.com/apache/spark/blob/v2.1.0/core/src/main/scala/org/apache/spark/memory/UnifiedMemoryManager.scala" target="_blank" rel="external">Unified Memory Manager</a>）方式，1.6 之前采用的静态管理（<a href="https://github.com/apache/spark/blob/v2.1.0/core/src/main/scala/org/apache/spark/memory/StaticMemoryManager.scala" target="_blank" rel="external">Static Memory Manager</a>）方式仍被保留，可通过配置 spark.memory.useLegacyMode 参数启用。两种方式的区别在于对空间分配的方式，下面的第 2 小节会分别对这两种方式进行介绍。</p>
+<h2 id="内存空间分配"><a href="#内存空间分配" class="headerlink" title="内存空间分配"></a>内存空间分配</h2><h3 id="静态内存管理"><a href="#静态内存管理" class="headerlink" title="静态内存管理"></a>静态内存管理</h3><p>在 Spark 最初采用的静态内存管理机制下，存储内存、执行内存和其他内存的大小在 Spark 应用程序运行期间均为固定的，但用户可以应用程序启动前进行配置，堆内内存的分配如图 2 所示：</p>
+<p><img src="https://www.ibm.com/developerworks/cn/analytics/library/ba-cn-apache-spark-memory-management/image002.png" alt="img"></p>
+<p>可以看到，可用的堆内内存的大小需要按照下面的方式计算：</p>
+<h4 id="可用堆内内存空间"><a href="#可用堆内内存空间" class="headerlink" title="可用堆内内存空间"></a>可用堆内内存空间</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">可用的存储内存 = systemMaxMemory * spark.storage.memoryFraction * spark.storage.safetyFraction</div><div class="line">可用的执行内存 = systemMaxMemory * spark.shuffle.memoryFraction * spark.shuffle.safetyFraction</div></pre></td></tr></table></figure>
+<p>其中 systemMaxMemory 取决于当前 JVM 堆内内存的大小，最后可用的执行内存或者存储内存要在此基础上与各自的 memoryFraction 参数和 safetyFraction 参数相乘得出。上述计算公式中的两个 safetyFraction 参数，其意义在于在逻辑上预留出 1-safetyFraction 这么一块保险区域，降低因实际内存超出当前预设范围而导致 OOM 的风险（上文提到，对于非序列化对象的内存采样估算会产生误差）。值得注意的是，这个预留的保险区域仅仅是一种逻辑上的规划，在具体使用时 Spark 并没有区别对待，和”其它内存”一样交给了 JVM 去管理。</p>
+<p>堆外的空间分配较为简单，只有存储内存和执行内存，如图 3 所示。可用的执行内存和存储内存占用的空间大小直接由参数 spark.memory.storageFraction 决定，由于堆外内存占用的空间可以被精确计算，所以无需再设定保险区域。</p>
+<h5 id="静态内存管理图示——堆外"><a href="#静态内存管理图示——堆外" class="headerlink" title="静态内存管理图示——堆外:"></a>静态内存管理图示——堆外:</h5><p><img src="https://www.ibm.com/developerworks/cn/analytics/library/ba-cn-apache-spark-memory-management/image003.png" alt="img"></p>
+<p>静态内存管理机制实现起来较为简单，但如果用户不熟悉 Spark 的存储机制，或没有根据具体的数据规模和计算任务或做相应的配置，很容易造成”一半海水，一半火焰”的局面，即存储内存和执行内存中的一方剩余大量的空间，而另一方却早早被占满，不得不淘汰或移出旧的内容以存储新的内容。由于新的内存管理机制的出现，这种方式目前已经很少有开发者使用，出于兼容旧版本的应用程序的目的，Spark 仍然保留了它的实现。</p>
+<h3 id="统一内存管理"><a href="#统一内存管理" class="headerlink" title="统一内存管理"></a>统一内存管理</h3><p>Spark 1.6 之后引入的统一内存管理机制，与静态内存管理的区别在于存储内存和执行内存共享同一块空间，可以动态占用对方的空闲区域，如图 4 和图 5 所示</p>
+<h5 id="图-4-统一内存管理图示——堆内"><a href="#图-4-统一内存管理图示——堆内" class="headerlink" title="图 4 . 统一内存管理图示——堆内"></a>图 4 . 统一内存管理图示——堆内</h5><p><img src="https://www.ibm.com/developerworks/cn/analytics/library/ba-cn-apache-spark-memory-management/image004.png" alt="img"></p>
+<h5 id="统一内存管理图示——堆外"><a href="#统一内存管理图示——堆外" class="headerlink" title="统一内存管理图示——堆外"></a>统一内存管理图示——堆外</h5><p><img src="https://www.ibm.com/developerworks/cn/analytics/library/ba-cn-apache-spark-memory-management/image005.png" alt="img"></p>
+<p>其中最重要的优化在于动态占用机制，其规则如下：</p>
+<ul>
+<li>设定基本的存储内存和执行内存区域（spark.storage.storageFraction 参数），该设定确定了双方各自拥有的空间的范围</li>
+<li>双方的空间都不足时，则存储到硬盘；若己方空间不足而对方空余时，可借用对方的空间;（存储空间不足是指不足以放下一个完整的 Block）</li>
+<li>执行内存的空间被对方占用后，可让对方将占用的部分转存到硬盘，然后”归还”借用的空间</li>
+<li>存储内存的空间被对方占用后，无法让对方”归还”，因为需要考虑 Shuffle 过程中的很多因素，实现起来较为复杂</li>
+</ul>
+<h5 id="动态占用机制图示"><a href="#动态占用机制图示" class="headerlink" title="动态占用机制图示"></a>动态占用机制图示</h5><p><img src="https://www.ibm.com/developerworks/cn/analytics/library/ba-cn-apache-spark-memory-management/image006.png" alt="img"></p>
+<p>凭借统一内存管理机制，Spark 在一定程度上提高了堆内和堆外内存资源的利用率，降低了开发者维护 Spark 内存的难度，但并不意味着开发者可以高枕无忧。譬如，所以如果存储内存的空间太大或者说缓存的数据过多，反而会导致频繁的全量垃圾回收，降低任务执行时的性能，因为缓存的 RDD 数据通常都是长期驻留内存的 。所以要想充分发挥 Spark 的性能，需要开发者进一步了解存储内存和执行内存各自的管理方式和实现原理。</p>
+<h2 id="存储内存管理"><a href="#存储内存管理" class="headerlink" title="存储内存管理"></a>存储内存管理</h2><h3 id="RDD-的持久化机制"><a href="#RDD-的持久化机制" class="headerlink" title="RDD 的持久化机制"></a>RDD 的持久化机制</h3><p>弹性分布式数据集（RDD）作为 Spark 最根本的数据抽象，是只读的分区记录（Partition）的集合，只能基于在稳定物理存储中的数据集上创建，或者在其他已有的 RDD 上执行转换（Transformation）操作产生一个新的 RDD。转换后的 RDD 与原始的 RDD 之间产生的依赖关系，构成了血统（Lineage）。凭借血统，Spark 保证了每一个 RDD 都可以被重新恢复。但 RDD 的所有转换都是惰性的，即只有当一个返回结果给 Driver 的行动（Action）发生时，Spark 才会创建任务读取 RDD，然后真正触发转换的执行。<br>Task 在启动之初读取一个分区时，会先判断这个分区是否已经被持久化，如果没有则需要检查 Checkpoint 或按照血统重新计算。所以如果一个 RDD 上要执行多次行动，可以在第一次行动中使用 persist 或 cache 方法，在内存或磁盘中持久化或缓存这个 RDD，从而在后面的行动时提升计算速度。事实上，cache 方法是使用默认的 MEMORY_ONLY 的存储级别将 RDD 持久化到内存，故缓存是一种特殊的持久化。 堆内和堆外存储内存的设计，便可以对缓存RDD 时使用的内存做统一的规划和管 理 （存储内存的其他应用场景，如缓存 broadcast 数据，暂时不在本文的讨论范围之内）。</p>
+<p>RDD 的持久化由 Spark 的 Storage 模块负责，实现了 RDD 与物理存储的解耦合。Storage 模块负责管理 Spark 在计算过程中产生的数据，将那些在内存或磁盘、在本地或远程存取数据的功能封装了起来。在具体实现时 Driver 端和 Executor 端的 Storage 模块构成了主从式的架构，即 Driver 端的 BlockManager 为 Master，Executor 端的 BlockManager 为 Slave。Storage 模块在逻辑上以 Block 为基本存储单位，RDD 的每个 Partition 经过处理后唯一对应一个 Block（BlockId 的格式为 rdd_RDD-ID_PARTITION-ID ）。Master 负责整个 Spark 应用程序的 Block 的元数据信息的管理和维护，而 Slave 需要将 Block 的更新等状态上报到 Master，同时接收 Master 的命令，例如新增或删除一个 RDD。</p>
+<h5 id="Storage-模块示意图"><a href="#Storage-模块示意图" class="headerlink" title="Storage 模块示意图"></a>Storage 模块示意图</h5><p><img src="https://www.ibm.com/developerworks/cn/analytics/library/ba-cn-apache-spark-memory-management/image007.png" alt="img"></p>
+<p>在对 RDD 持久化时，Spark 规定了 MEMORY_ONLY、MEMORY_AND_DISK 等 7 种不同的 <a href="http://spark.apache.org/docs/latest/programming-guide.html#rdd-persistence" target="_blank" rel="external">存储级别 </a>，而存储级别是以下 5 个变量的组合：</p>
+<h4 id="存储级别"><a href="#存储级别" class="headerlink" title="存储级别"></a>存储级别</h4><figure class="highlight scala"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">StorageLevel</span> <span class="title">private</span>(<span class="params"></span></span></div><div class="line">private var _useDisk: <span class="type">Boolean</span>, //磁盘</div><div class="line">private var _useMemory: <span class="type">Boolean</span>, //这里其实是指堆内内存</div><div class="line">private var _useOffHeap: <span class="type">Boolean</span>, //堆外内存</div><div class="line">private var _deserialized: <span class="type">Boolean</span>, //是否为非序列化</div><div class="line">private var _replication: <span class="type">Int</span> = 1 //副本个数</div><div class="line">)</div></pre></td></tr></table></figure>
+<p>通过对数据结构的分析，可以看出存储级别从三个维度定义了 RDD 的 Partition（同时也就是 Block）的存储方式：</p>
+<ul>
+<li>存储位置：磁盘／堆内内存／堆外内存。如 MEMORY_AND_DISK 是同时在磁盘和堆内内存上存储，实现了冗余备份。OFF_HEAP 则是只在堆外内存存储，目前选择堆外内存时不能同时存储到其他位置。</li>
+<li>存储形式：Block 缓存到存储内存后，是否为非序列化的形式。如 MEMORY_ONLY 是非序列化方式存储，OFF_HEAP 是序列化方式存储。</li>
+<li>副本数量：大于 1 时需要远程冗余备份到其他节点。如 DISK_ONLY_2 需要远程备份 1 个副本。</li>
+</ul>
+<h3 id="RDD-缓存的过程"><a href="#RDD-缓存的过程" class="headerlink" title="RDD 缓存的过程"></a>RDD 缓存的过程</h3><p>RDD 在缓存到存储内存之前，Partition 中的数据一般以迭代器（<a href="http://www.scala-lang.org/docu/files/collections-api/collections_43.html" target="_blank" rel="external">Iterator</a>）的数据结构来访问，这是 Scala 语言中一种遍历数据集合的方法。通过 Iterator 可以获取分区中每一条序列化或者非序列化的数据项(Record)，这些 Record 的对象实例在逻辑上占用了 JVM 堆内内存的 other 部分的空间，同一 Partition 的不同 Record 的空间并不连续。</p>
+<p>RDD 在缓存到存储内存之后，Partition 被转换成 Block，Record 在堆内或堆外存储内存中占用一块连续的空间。<strong>将Partition由不连续的存储空间转换为连续存储空间的过程，Spark称之为”展开”（Unroll）</strong>。Block 有序列化和非序列化两种存储格式，具体以哪种方式取决于该 RDD 的存储级别。非反序列化的 Block 以一种 DeserializedMemoryEntry 的数据结构定义，用一个数组存储所有的 Java 对象，非序列化的 Block 则以 SerializedMemoryEntry 的数据结构定义，用字节缓冲区（ByteBuffer）来存储二进制数据。每个 Executor 的 Storage 模块用一个链式 Map 结构（LinkedHashMap）来管理堆内和堆外存储内存中所有的 Block 对象的实例[6]，对这个 LinkedHashMap 新增和删除间接记录了内存的申请和释放。</p>
+<p>因为不能保证存储空间可以一次容纳 Iterator 中的所有数据，当前的计算任务在 Unroll 时要向 MemoryManager 申请足够的 Unroll 空间来临时占位，空间不足则 Unroll 失败，空间足够时可以继续进行。对于序列化的 Partition，其所需的 Unroll 空间可以直接累加计算，一次申请。而非序列化的 Partition 则要在遍历 Record 的过程中依次申请，即每读取一条 Record，采样估算其所需的 Unroll 空间并进行申请，空间不足时可以中断，释放已占用的 Unroll 空间。如果最终 Unroll 成功，当前 Partition 所占用的 Unroll 空间被转换为正常的缓存 RDD 的存储空间，如下图 8 所示。</p>
+<h5 id="Spark-Unroll-示意图"><a href="#Spark-Unroll-示意图" class="headerlink" title="Spark Unroll 示意图"></a>Spark Unroll 示意图</h5><p><img src="https://www.ibm.com/developerworks/cn/analytics/library/ba-cn-apache-spark-memory-management/image008.png" alt="img"></p>
+<p>在图 3 和图 5 中可以看到，在静态内存管理时，Spark 在存储内存中专门划分了一块 Unroll 空间，其大小是固定的，统一内存管理时则没有对 Unroll 空间进行特别区分，当存储空间不足时会根据动态占用机制进行处理。</p>
+<h3 id="淘汰和落盘"><a href="#淘汰和落盘" class="headerlink" title="淘汰和落盘"></a>淘汰和落盘</h3><p>由于同一个 Executor 的所有的计算任务共享有限的存储内存空间，当有新的 Block 需要缓存但是剩余空间不足且无法动态占用时，就要对 LinkedHashMap 中的旧 Block 进行淘汰（Eviction），而被淘汰的 Block 如果其存储级别中同时包含存储到磁盘的要求，则要对其进行落盘（Drop），否则直接删除该 Block。</p>
+<p>存储内存的淘汰规则为：</p>
+<ul>
+<li>被淘汰的旧 Block 要与新 Block 的 MemoryMode 相同，即同属于堆外或堆内内存</li>
+<li>新旧 Block 不能属于同一个 RDD，避免循环淘汰</li>
+<li>旧 Block 所属 RDD 不能处于被读状态，避免引发一致性问题</li>
+<li>遍历 LinkedHashMap 中 Block，按照最近最少使用（LRU）的顺序淘汰，直到满足新 Block 所需的空间。其中 LRU 是 LinkedHashMap 的特性。</li>
+</ul>
+<p>落盘的流程则比较简单，如果其存储级别符合_useDisk 为 true 的条件，再根据其_deserialized 判断是否是非序列化的形式，若是则对其进行序列化，最后将数据存储到磁盘，在 Storage 模块中更新其信息。</p>
+<h2 id="执行内存管理"><a href="#执行内存管理" class="headerlink" title="执行内存管理"></a>执行内存管理</h2><h3 id="多任务间内存分配"><a href="#多任务间内存分配" class="headerlink" title="多任务间内存分配"></a>多任务间内存分配</h3><p>Executor 内运行的任务同样共享执行内存，Spark 用一个 HashMap 结构保存了任务到内存耗费的映射。每个任务可占用的执行内存大小的范围为 1/2N ~ 1/N，其中 N 为当前 Executor 内正在运行的任务的个数。每个任务在启动之时，要向 MemoryManager 请求申请最少为 1/2N 的执行内存，如果不能被满足要求则该任务被阻塞，直到有其他任务释放了足够的执行内存，该任务才可以被唤醒。</p>
+<h3 id="Shuffle-的内存占用"><a href="#Shuffle-的内存占用" class="headerlink" title="Shuffle 的内存占用"></a>Shuffle 的内存占用</h3><p>执行内存主要用来存储任务在执行 Shuffle 时占用的内存，Shuffle 是按照一定规则对 RDD 数据重新分区的过程，我们来看 Shuffle 的 Write 和 Read 两阶段对执行内存的使用：</p>
+<ul>
+<li>Shuffle Write</li>
+</ul>
+<ol>
+<li>若在 map 端选择普通的排序方式，会采用 ExternalSorter 进行外排，在内存中存储数据时主要占用堆内执行空间。</li>
+<li>若在 map 端选择 Tungsten 的排序方式，则采用 ShuffleExternalSorter 直接对以序列化形式存储的数据排序，在内存中存储数据时可以占用堆外或堆内执行空间，取决于用户是否开启了堆外内存以及堆外执行内存是否足够。</li>
+</ol>
+<ul>
+<li>Shuffle Read</li>
+</ul>
+<ol>
+<li>在对 reduce 端的数据进行聚合时，要将数据交给 Aggregator 处理，在内存中存储数据时占用堆内执行空间。</li>
+<li>如果需要进行最终结果排序，则要将再次将数据交给 ExternalSorter 处理，占用堆内执行空间。</li>
+</ol>
+<p>在 ExternalSorter 和 Aggregator 中，Spark 会使用一种叫 AppendOnlyMap 的哈希表在堆内执行内存中存储数据，但在 Shuffle 过程中所有数据并不能都保存到该哈希表中，当这个哈希表占用的内存会进行周期性地采样估算，当其大到一定程度，无法再从 MemoryManager 申请到新的执行内存时，Spark 就会将其全部内容存储到磁盘文件中，这个过程被称为溢存(Spill)，溢存到磁盘的文件最后会被归并(Merge)。</p>
+<p>Shuffle Write 阶段中用到的 Tungsten 是 Databricks 公司提出的对 Spark 优化内存和 CPU 使用的计划[9]，解决了一些 JVM 在性能上的限制和弊端。Spark 会根据 Shuffle 的情况来自动选择是否采用 Tungsten 排序。Tungsten 采用的页式内存管理机制建立在 MemoryManager 之上，即 Tungsten 对执行内存的使用进行了一步的抽象，这样在 Shuffle 过程中无需关心数据具体存储在堆内还是堆外。每个内存页用一个 MemoryBlock 来定义，并用 Object obj 和 long offset 这两个变量统一标识一个内存页在系统内存中的地址。堆内的 MemoryBlock 是以 long 型数组的形式分配的内存，其 obj 的值为是这个数组的对象引用，offset 是 long 型数组的在 JVM 中的初始偏移地址，两者配合使用可以定位这个数组在堆内的绝对地址；堆外的 MemoryBlock 是直接申请到的内存块，其 obj 为 null，offset 是这个内存块在系统内存中的 64 位绝对地址。Spark 用 MemoryBlock 巧妙地将堆内和堆外内存页统一抽象封装，并用页表(pageTable)管理每个 Task 申请到的内存页。</p>
+<p>Tungsten 页式管理下的所有内存用 64 位的逻辑地址表示，由页号和页内偏移量组成：</p>
+<ul>
+<li>页号：占 13 位，唯一标识一个内存页，Spark 在申请内存页之前要先申请空闲页号。</li>
+<li>页内偏移量：占 51 位，是在使用内存页存储数据时，数据在页内的偏移地址。</li>
+</ul>
+<p>有了统一的寻址方式，Spark 可以用 64 位逻辑地址的指针定位到堆内或堆外的内存，整个 Shuffle Write 排序的过程只需要对指针进行排序，并且无需反序列化，整个过程非常高效，对于内存访问效率和 CPU 使用效率带来了明显的提升[10]。</p>
+<p>Spark 的存储内存和执行内存有着截然不同的管理方式：对于存储内存来说，Spark 用一个 LinkedHashMap 来集中管理所有的 Block，Block 由需要缓存的 RDD 的 Partition 转化而成；而对于执行内存，Spark 用 AppendOnlyMap 来存储 Shuffle 过程中的数据，在 Tungsten 排序中甚至抽象成为页式内存管理，开辟了全新的 JVM 内存管理机制。</p>
+<h1 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h1><ol>
+<li><a href="http://shiyanjun.cn/archives/1585.html" target="_blank" rel="external">http://shiyanjun.cn/archives/1585.html</a></li>
+<li><a href="https://www.ibm.com/developerworks/cn/analytics/library/ba-cn-apache-spark-memory-management/index.html" target="_blank" rel="external">https://www.ibm.com/developerworks/cn/analytics/library/ba-cn-apache-spark-memory-management/index.html</a></li>
+</ol>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Spark/" rel="tag"># Spark</a>
+          
+        </div>
+      
+
+      
+        
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/05/14/JDK 并发包/" rel="next" title="JDK 并发包">
+                <i class="fa fa-chevron-left"></i> JDK 并发包
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/05/15/Java多线程基础/" rel="prev" title="Java多线程基础">
+                Java多线程基础 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="cloud-tie-wrapper" class="cloud-tie-wrapper"></div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.png"
+               alt="[object Object]" />
+          <p class="site-author-name" itemprop="name">[object Object]</p>
+           
+              <p class="site-description motion-element" itemprop="description">Hadoop, Spark, OpenStack，Docker</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">29</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">12</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">12</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/iclouding" target="_blank" title="Github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  Github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.cnblogs.com/icloud/" target="_blank" title="博客园">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  博客园
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+        
+        
+    <div class="links-of-blogroll motion-element links-of-blogroll-block">
+      <div class="links-of-blogroll-title">
+        <!-- modify icon to fire by szw -->
+        <i class="fa fa-history fa-" aria-hidden="true"></i>
+        近期文章
+      </div>
+          <ul class="links-of-blogroll-list">
+            
+            
+              <li>
+                <a href="/2020/01/01/2017-05-27博客收录/" title="博客收录" target="_blank">博客收录</a>
+              </li>
+            
+              <li>
+                <a href="/2017/12/08/Hadoop序列化/" title="Hadoop序列化" target="_blank">Hadoop序列化</a>
+              </li>
+            
+              <li>
+                <a href="/2017/09/29/2017-09-29Superset数据分析与使用/" title="2017-09-29Superset数据分析与使用" target="_blank">2017-09-29Superset数据分析与使用</a>
+              </li>
+            
+              <li>
+                <a href="/2017/09/22/2017-09-22Spark1-X和2-X编译部署/" title="2017-09-22Spark1.X和2.X编译部署" target="_blank">2017-09-22Spark1.X和2.X编译部署</a>
+              </li>
+            
+              <li>
+                <a href="/2017/09/19/2017-09-19Spark机器学习之聚类/" title="2017-09-19Spark机器学习之聚类" target="_blank">2017-09-19Spark机器学习之聚类</a>
+              </li>
+            
+              </ul>
+            </div>
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Spark-内存模型"><span class="nav-number">1.</span> <span class="nav-text">Spark 内存模型</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#堆内和堆外内存规划"><span class="nav-number">1.1.</span> <span class="nav-text">堆内和堆外内存规划</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#堆内内存"><span class="nav-number">1.1.1.</span> <span class="nav-text">堆内内存</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#堆外内存"><span class="nav-number">1.1.2.</span> <span class="nav-text">堆外内存</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#内存管理接口"><span class="nav-number">1.1.3.</span> <span class="nav-text">内存管理接口</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#内存空间分配"><span class="nav-number">1.2.</span> <span class="nav-text">内存空间分配</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#静态内存管理"><span class="nav-number">1.2.1.</span> <span class="nav-text">静态内存管理</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#可用堆内内存空间"><span class="nav-number">1.2.1.1.</span> <span class="nav-text">可用堆内内存空间</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#静态内存管理图示——堆外"><span class="nav-number">1.2.1.1.1.</span> <span class="nav-text">静态内存管理图示——堆外:</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#统一内存管理"><span class="nav-number">1.2.2.</span> <span class="nav-text">统一内存管理</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#图-4-统一内存管理图示——堆内"><span class="nav-number">1.2.2.0.1.</span> <span class="nav-text">图 4 . 统一内存管理图示——堆内</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#统一内存管理图示——堆外"><span class="nav-number">1.2.2.0.2.</span> <span class="nav-text">统一内存管理图示——堆外</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#动态占用机制图示"><span class="nav-number">1.2.2.0.3.</span> <span class="nav-text">动态占用机制图示</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#存储内存管理"><span class="nav-number">1.3.</span> <span class="nav-text">存储内存管理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#RDD-的持久化机制"><span class="nav-number">1.3.1.</span> <span class="nav-text">RDD 的持久化机制</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#Storage-模块示意图"><span class="nav-number">1.3.1.0.1.</span> <span class="nav-text">Storage 模块示意图</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#存储级别"><span class="nav-number">1.3.1.1.</span> <span class="nav-text">存储级别</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#RDD-缓存的过程"><span class="nav-number">1.3.2.</span> <span class="nav-text">RDD 缓存的过程</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#Spark-Unroll-示意图"><span class="nav-number">1.3.2.0.1.</span> <span class="nav-text">Spark Unroll 示意图</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#淘汰和落盘"><span class="nav-number">1.3.3.</span> <span class="nav-text">淘汰和落盘</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#执行内存管理"><span class="nav-number">1.4.</span> <span class="nav-text">执行内存管理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#多任务间内存分配"><span class="nav-number">1.4.1.</span> <span class="nav-text">多任务间内存分配</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Shuffle-的内存占用"><span class="nav-number">1.4.2.</span> <span class="nav-text">Shuffle 的内存占用</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#参考资料"><span class="nav-number">2.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">iclouding</span>
+</div>
+
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.1"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+    
+    <script>
+      var cloudTieConfig = {
+        url: document.location.href, 
+        sourceId: "",
+        productKey: "e5e46c90da2d400e9a09f945448bb299",
+        target: "cloud-tie-wrapper"
+      };
+    </script>
+    <script src="https://img1.ws.126.net/f2e/tie/yun/sdk/loader.js"></script>
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("ExxAsfadHnGbfXNeH3Y3EoEQ-gzGzoHsz", "scr6biItx0UTfQik4OWLoR36");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  <script type="text/javascript" src="/js/src/js.cookie.js?v=5.1.1"></script>
+  <script type="text/javascript" src="/js/src/scroll-cookie.js?v=5.1.1"></script>
+
+
+  
+
+</body>
+</html>
