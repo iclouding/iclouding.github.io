@@ -1,0 +1,992 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+  
+  
+  <link rel="stylesheet" media="all" href="/lib/Han/dist/han.min.css?v=3.3">
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Hive," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.1" />
+
+
+
+
+
+
+<meta name="description" content="Hive UDF、UDAF、UDTF开发[TOC] 概述Hive自带了很多聚合，分析函数，见上篇。 Hive的自定义函数，分为三种：UDF、UDAF、UDTF  UDF：User Defined Functions，自定义函数，用来处理，输入一行，输出一行的操作，类似MapReduce中Map操作 UDAF：User Defined Aggregation Functions，自定义聚合函数，用来">
+<meta name="keywords" content="Hive">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Hive UDF和UDAF开发">
+<meta property="og:url" content="http://yoursite.com/2018/05/16/2018-05-16Hive-UDF和UDAF开发/index.html">
+<meta property="og:site_name" content="大数据部落">
+<meta property="og:description" content="Hive UDF、UDAF、UDTF开发[TOC] 概述Hive自带了很多聚合，分析函数，见上篇。 Hive的自定义函数，分为三种：UDF、UDAF、UDTF  UDF：User Defined Functions，自定义函数，用来处理，输入一行，输出一行的操作，类似MapReduce中Map操作 UDAF：User Defined Aggregation Functions，自定义聚合函数，用来">
+<meta property="og:updated_time" content="2018-05-17T08:41:17.537Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Hive UDF和UDAF开发">
+<meta name="twitter:description" content="Hive UDF、UDAF、UDTF开发[TOC] 概述Hive自带了很多聚合，分析函数，见上篇。 Hive的自定义函数，分为三种：UDF、UDAF、UDTF  UDF：User Defined Functions，自定义函数，用来处理，输入一行，输出一行的操作，类似MapReduce中Map操作 UDAF：User Defined Aggregation Functions，自定义聚合函数，用来">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"always","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2018/05/16/2018-05-16Hive-UDF和UDAF开发/"/>
+
+
+
+
+
+  <title>Hive UDF和UDAF开发 | 大数据部落</title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">大数据部落</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">Hadoop, Spark, OpenStack，Docker</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/05/16/2018-05-16Hive-UDF和UDAF开发/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="[object Object]">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="大数据部落">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Hive UDF和UDAF开发</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-16T09:36:21+08:00">
+                2018-05-16
+              </time>
+            
+
+            
+              <span class="post-meta-divider">|</span>
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-check-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">更新于</span>
+              
+              <time title="更新于" itemprop="dateModified" datetime="2018-05-17T16:41:17+08:00">
+                2018-05-17
+              </time>
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a class="cloud-tie-join-count" href="/2018/05/16/2018-05-16Hive-UDF和UDAF开发/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count join-count" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/2018/05/16/2018-05-16Hive-UDF和UDAF开发/" class="leancloud_visitors" data-flag-title="Hive UDF和UDAF开发">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数 </span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    <div class="post-body han-init-context" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="Hive-UDF、UDAF、UDTF开发"><a href="#Hive-UDF、UDAF、UDTF开发" class="headerlink" title="Hive UDF、UDAF、UDTF开发"></a>Hive UDF、UDAF、UDTF开发</h1><p>[TOC]</p>
+<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>Hive自带了很多聚合，分析函数，见上篇。</p>
+<p>Hive的自定义函数，分为三种：UDF、UDAF、UDTF</p>
+<ul>
+<li>UDF：User Defined Functions，自定义函数，用来处理，输入一行，输出一行的操作，类似MapReduce中Map操作</li>
+<li>UDAF：User Defined Aggregation Functions，自定义聚合函数，用来处理输入多行，输出一行的操作，类似MapReduce中Reduce操作</li>
+<li>UDTF：User Defined Table Generating Functions，自定义表产生函数，用来处理输入一行，输出多行的操作</li>
+</ul>
+<h3 id="pom文件"><a href="#pom文件" class="headerlink" title="pom文件"></a>pom文件</h3><p>pom里增加以下依赖：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></div><div class="line">  <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.hive<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></div><div class="line">  <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>hive-exec<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></div><div class="line">  <span class="tag">&lt;<span class="name">version</span>&gt;</span>2.0.1<span class="tag">&lt;/<span class="name">version</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></div></pre></td></tr></table></figure>
+<h2 id="UDF开发"><a href="#UDF开发" class="headerlink" title="UDF开发"></a>UDF开发</h2><p>UDF开发相对比较简单，但是实现起来，通常有两种方式：</p>
+<ul>
+<li>继承基础的UDF接口：函数读取和返回基本类型，即Hadoop和Hive的基本类型。如，Text、IntWritable、LongWritable、DoubleWritable等。</li>
+<li>继承复杂的GenericUDF接口，除了上述的，还可以处理Map、List、Set类型。 </li>
+</ul>
+<blockquote>
+<p>@Describtion注解是可选的，用于对函数进行说明，其中的<em>FUNC</em>字符串表示函数名，当使用DESCRIBE FUNCTION命令时，替换成函数名。@Describtion包含三个属性：</p>
+<ul>
+<li>name：用于指定Hive中的函数名。</li>
+<li>value：用于描述函数的参数。</li>
+<li>extended：额外的说明，如，给出示例。当使用DESCRIBE FUNCTION EXTENDED name的时候打印。</li>
+</ul>
+</blockquote>
+<h3 id="基础UDF开发"><a href="#基础UDF开发" class="headerlink" title="基础UDF开发"></a>基础UDF开发</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MyLenUDF</span> <span class="keyword">extends</span> <span class="title">UDF</span> </span>&#123;</div><div class="line">    <span class="comment">// 要手动去写evaluate这个函数，函数参数可以是多个，类型必须是Hadoop兼容的Writable类型</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">evaluate</span><span class="params">(<span class="keyword">final</span> Text col)</span> </span>&#123;</div><div class="line">        <span class="keyword">return</span> col.getLength();</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>###GenericUDF接口</p>
+<p>GenericUDF接口比较复杂，要实现以下三个方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//这个方法只调用一次，并且在evaluate()方法之前调用。该方法接受的参数是一个ObjectInspectors数组。该方法检查接受正确的参数类型和参数个数。  </span></div><div class="line"><span class="function">ObjectInspector <span class="title">initialize</span><span class="params">(ObjectInspector[] arguments)</span></span>;  </div><div class="line">  </div><div class="line"><span class="comment">//这个方法类似UDF的evaluate()方法。它处理真实的参数，并返回最终结果。  </span></div><div class="line"><span class="function">Object <span class="title">evaluate</span><span class="params">(GenericUDF.DeferredObject[] arguments)</span></span>;  </div><div class="line">  </div><div class="line"><span class="comment">//这个方法用于当实现的GenericUDF出错的时候，打印出提示信息。而提示信息就是你实现该方法最后返回的字符串。  </span></div><div class="line"><span class="function">String <span class="title">getDisplayString</span><span class="params">(String[] children)</span></span>;</div></pre></td></tr></table></figure>
+<p>下面的hive自带的array_contains一个例子</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Description</span>(name = <span class="string">"array_contains"</span>, value=<span class="string">"_FUNC_(array, value) - Returns TRUE if the array contains value."</span>,</div><div class="line">    extended=<span class="string">"Example:\n &gt; SELECT _FUNC_(array(1, 2, 3), 2) FROM src LIMIT 1;\n true"</span>)</div><div class="line"><span class="meta">@NDV</span>(maxNdv = <span class="number">2</span>)</div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">GenericUDFArrayContains</span> <span class="keyword">extends</span> <span class="title">GenericUDF</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="comment">// 数组索引</span></div><div class="line">  <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> ARRAY_IDX = <span class="number">0</span>;</div><div class="line">    <span class="comment">// 值索引</span></div><div class="line">  <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> VALUE_IDX = <span class="number">1</span>;</div><div class="line">    <span class="comment">// 个数</span></div><div class="line">  <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> ARG_COUNT = <span class="number">2</span>; <span class="comment">// Number of arguments to this UDF</span></div><div class="line">    <span class="comment">// 函数名字</span></div><div class="line">  <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> String FUNC_NAME = <span class="string">"ARRAY_CONTAINS"</span>; <span class="comment">// External Name</span></div><div class="line"></div><div class="line">    <span class="comment">// transient 是不需要序列化的</span></div><div class="line">  <span class="keyword">private</span> <span class="keyword">transient</span> ObjectInspector valueOI;</div><div class="line">  <span class="keyword">private</span> <span class="keyword">transient</span> ListObjectInspector arrayOI;</div><div class="line">  <span class="keyword">private</span> <span class="keyword">transient</span> ObjectInspector arrayElementOI;</div><div class="line">    <span class="comment">// 结果</span></div><div class="line">  <span class="keyword">private</span> BooleanWritable result;</div><div class="line"></div><div class="line">    <span class="comment">// 这个进行参数类型检查</span></div><div class="line">  <span class="meta">@Override</span></div><div class="line">  <span class="function"><span class="keyword">public</span> ObjectInspector <span class="title">initialize</span><span class="params">(ObjectInspector[] arguments)</span></span></div><div class="line">      <span class="keyword">throws</span> UDFArgumentException &#123;</div><div class="line"></div><div class="line">    <span class="comment">// Check if two arguments were passed</span></div><div class="line">    <span class="keyword">if</span> (arguments.length != ARG_COUNT) &#123;</div><div class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> UDFArgumentException(</div><div class="line">          <span class="string">"The function "</span> + FUNC_NAME + <span class="string">" accepts "</span></div><div class="line">              + ARG_COUNT + <span class="string">" arguments."</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">// Check if ARRAY_IDX argument is of category LIST</span></div><div class="line">    <span class="keyword">if</span> (!arguments[ARRAY_IDX].getCategory().equals(Category.LIST)) &#123;</div><div class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> UDFArgumentTypeException(ARRAY_IDX,</div><div class="line">          <span class="string">"\""</span> + org.apache.hadoop.hive.serde.serdeConstants.LIST_TYPE_NAME + <span class="string">"\" "</span></div><div class="line">          + <span class="string">"expected at function ARRAY_CONTAINS, but "</span></div><div class="line">          + <span class="string">"\""</span> + arguments[ARRAY_IDX].getTypeName() + <span class="string">"\" "</span></div><div class="line">          + <span class="string">"is found"</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    arrayOI = (ListObjectInspector) arguments[ARRAY_IDX];</div><div class="line">    arrayElementOI = arrayOI.getListElementObjectInspector();</div><div class="line"></div><div class="line">    valueOI = arguments[VALUE_IDX];</div><div class="line"></div><div class="line">    <span class="comment">// Check if list element and value are of same type</span></div><div class="line">    <span class="keyword">if</span> (!ObjectInspectorUtils.compareTypes(arrayElementOI, valueOI)) &#123;</div><div class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> UDFArgumentTypeException(VALUE_IDX,</div><div class="line">          <span class="string">"\""</span> + arrayElementOI.getTypeName() + <span class="string">"\""</span></div><div class="line">          + <span class="string">" expected at function ARRAY_CONTAINS, but "</span></div><div class="line">          + <span class="string">"\""</span> + valueOI.getTypeName() + <span class="string">"\""</span></div><div class="line">          + <span class="string">" is found"</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">// 是否是可比较类型</span></div><div class="line">    <span class="keyword">if</span> (!ObjectInspectorUtils.compareSupported(valueOI)) &#123;</div><div class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> UDFArgumentException(<span class="string">"The function "</span> + FUNC_NAME</div><div class="line">          + <span class="string">" does not support comparison for "</span></div><div class="line">          + <span class="string">"\""</span> + valueOI.getTypeName() + <span class="string">"\""</span></div><div class="line">          + <span class="string">" types"</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    result = <span class="keyword">new</span> BooleanWritable(<span class="keyword">false</span>);</div><div class="line"></div><div class="line">    <span class="comment">// 返回Boolean类型返回值</span></div><div class="line">    <span class="keyword">return</span> PrimitiveObjectInspectorFactory.writableBooleanObjectInspector;</div><div class="line">  &#125;</div><div class="line"></div><div class="line">    <span class="comment">// 这个进行挨个比较，查找存在的元素</span></div><div class="line">  <span class="meta">@Override</span></div><div class="line">  <span class="function"><span class="keyword">public</span> Object <span class="title">evaluate</span><span class="params">(DeferredObject[] arguments)</span> <span class="keyword">throws</span> HiveException </span>&#123;</div><div class="line"></div><div class="line">    result.set(<span class="keyword">false</span>);</div><div class="line"></div><div class="line">    Object array = arguments[ARRAY_IDX].get();</div><div class="line">    Object value = arguments[VALUE_IDX].get();</div><div class="line"></div><div class="line">    <span class="keyword">int</span> arrayLength = arrayOI.getListLength(array);</div><div class="line"></div><div class="line">    <span class="comment">// 判断数组是否为空</span></div><div class="line">    <span class="keyword">if</span> (value == <span class="keyword">null</span> || arrayLength &lt;= <span class="number">0</span>) &#123;</div><div class="line">      <span class="keyword">return</span> result;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">// 挨个比较</span></div><div class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i=<span class="number">0</span>; i&lt;arrayLength; ++i) &#123;</div><div class="line">      Object listElement = arrayOI.getListElement(array, i);</div><div class="line">      <span class="keyword">if</span> (listElement != <span class="keyword">null</span>) &#123;</div><div class="line">        <span class="keyword">if</span> (ObjectInspectorUtils.compare(value, valueOI, listElement, arrayElementOI) == <span class="number">0</span>) &#123;</div><div class="line">          result.set(<span class="keyword">true</span>);</div><div class="line">          <span class="keyword">break</span>;</div><div class="line">        &#125;</div><div class="line">      &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">return</span> result;</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="comment">// 出错时返回值</span></div><div class="line">  <span class="meta">@Override</span></div><div class="line">  <span class="function"><span class="keyword">public</span> String <span class="title">getDisplayString</span><span class="params">(String[] children)</span> </span>&#123;</div><div class="line">    <span class="keyword">assert</span> (children.length == ARG_COUNT);</div><div class="line">    <span class="keyword">return</span> <span class="string">"array_contains("</span> + children[ARRAY_IDX] + <span class="string">", "</span></div><div class="line">              + children[VALUE_IDX] + <span class="string">")"</span>;</div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h3 id="区别"><a href="#区别" class="headerlink" title="区别"></a>区别</h3><p>以上两种实现不同之处是：GenericUDF 可以处理复杂类型参数，并且继承GenericUDF更加有效率，因为UDF class 需要HIve使用反射的方式去实现。 <strong>UDF是作用于一行的。</strong> </p>
+<h2 id="UDAF开发"><a href="#UDAF开发" class="headerlink" title="UDAF开发"></a>UDAF开发</h2><p>hive有两种UDAF：Simple和Generic。</p>
+<ul>
+<li>Simple。即继承<code>org.apache.hadoop.hive.ql.exec.UDAF</code>类，并在派生类中以静态内部类的方式实现<code>org.apache.hadoop.hive.ql.exec.UDAFEvaluator</code>接口。这种方式简单直接，但是在使用过程中需要依赖JAVA反射机制，因此性能相对较低。在Hive源码包<code>org.apache.hadoop.hive.contrib.udaf.example</code>中包含几个示例。。但是这些接口已经被注解为<strong>Deprecated</strong>，建议不要使用这种方式开发新的UDAF函数。</li>
+<li>Generic。这是Hive社区推荐的新的写法，以抽象类代替原有的接口。新的抽象类<code>org.apache.hadoop.hive.ql.udf.generic.AbstractGenericUDAFResolver</code>替代老的UDAF接口，新的抽象类<code>org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator</code>替代老的<code>UDAFEvaluator</code>接口。</li>
+</ul>
+<p><strong>UDAF是需要在hive的sql语句和group by联合使用，hive的group by对于每个分组，只能返回一条记录，这点和mysql不一样，切记。</strong></p>
+<p> Hive开发有两个步骤：</p>
+<ol>
+<li>编写<code>resolver</code>类，resolver负责类型检查，操作符重载。类继承<code>org.apache.hadoop.hive.ql.udf.generic.AbstractGenericUDAFResolver</code>，<code>AbstractGenericUDAFResolver</code>实现了<code>org.apache.hadoop.hive.ql.udf.generic.GenericUDAFResolver2</code>，方便统一接口。</li>
+<li>第二个是编写<code>evaluator</code>类。evaluator真正实现UDAF的逻辑。通常来说，实现<code>org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator</code> ，包括几个必须实现的抽象方法，这几个方法负责完成UDAF所需要处理的逻辑。 </li>
+</ol>
+<h3 id="UDAF的运行流程简介"><a href="#UDAF的运行流程简介" class="headerlink" title="UDAF的运行流程简介"></a>UDAF的运行流程简介</h3><p> 抽象类<code>GenericUDAFEvaluator</code>中，包含一个静态内部枚举类，和一系列抽象方法。这个枚举类的注释中，解释了各个枚举值的运行阶段和运行内容。按照时间先后顺序，分别有：</p>
+<ul>
+<li><p>PARTIAL1：原始数据到部分聚合，调用iterate和terminatePartial –&gt; map阶段</p>
+</li>
+<li><p>PARTIAL2: 部分聚合到部分聚合，调用merge和terminatePartial –&gt; combine阶段</p>
+</li>
+<li><p>FINAL: 部分聚合到完全聚合，调用merge和terminate –&gt; reduce阶段</p>
+</li>
+<li><p>COMPLETE: 从原始数据直接到完全聚合 –&gt; map阶段，并且没有reduce</p>
+<p>那么，这几个方法分别干了些啥呢？</p>
+</li>
+<li><p><code>init(Mode m, ObjectInspector[] parameters)</code>: 这个是非必须的，但是一般是需要的。实例化Evaluator类的时候调用的，在不同的阶段需要返回不同的OI。需要注意的是，在不同的模式下parameters的含义是不同的，比如m为 PARTIAL1 和 COMPLETE 时，parameters为原始数据；m为 PARTIAL2 和 FINAL 时，parameters仅为部分聚合数据（只有一个元素）。在 PARTIAL1 和 PARTIAL2 模式下，ObjectInspector  用于terminatePartial方法的返回值，在FINAL和COMPLETE模式下ObjectInspector 用于terminate方法的返回值。 其入参和返回值，以及Mode阶段的关系如下表：</p>
+<p>|          | 入参         | 返回值的使用者   |<br>| ——– | ———— | —————- |<br>| PARTIAL1 | 原始数据     | terminatePartial |<br>| PARTIAL2 | 部分聚合数据 | terminatePartial |<br>| FINAL    | 部分聚合数据 | terminate        |<br>| COMPLETE | 原始数据     | terminate        |</p>
+</li>
+<li><p><code>getNewAggregationBuffer()</code>: 返回存储临时聚合结果的AggregationBuffer对象</p>
+</li>
+<li><p><code>reset(AggregationBuffer agg)</code>: 重置聚合结果对象，以支持mapper和reducer的重用。</p>
+</li>
+<li><p><code>iterate(AggregationBuffer agg, Object[] parameters)</code>：迭代处理原始数据parameters并保存到agg中</p>
+</li>
+<li><p><code>terminatePartial(AggregationBuffer agg)</code>：返回部分聚合数据的持久化对象。因为调用这个方法时，说明已经是map或者combine的结束了，必须将数据持久化以后交给reduce进行处理。只支持JAVA原始数据类型及其封装类型、<strong>HADOOP Writable类型、List、Map</strong>，<strong>不能返回自定义的类，即使实现了Serializable也不行</strong>，否则会出现问题或者错误的结果。</p>
+</li>
+<li><p><code>merge(AggregationBuffer agg, Object partial)</code>：将<code>terminatePartial</code>返回的部分聚合数据进行合并，需要使用到对应的OI。</p>
+</li>
+<li><p><code>terminate(AggregationBuffer agg)</code>：返回最终结果。 </p>
+</li>
+</ul>
+<h3 id="编写resolver类"><a href="#编写resolver类" class="headerlink" title="编写resolver类"></a>编写<code>resolver</code>类</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MySumUDAF</span> <span class="keyword">extends</span> <span class="title">AbstractGenericUDAFResolver</span> </span>&#123;</div><div class="line">    <span class="keyword">static</span> <span class="keyword">final</span> Log LOG = LogFactory.getLog(GenericUDAFSum.class.getName());</div><div class="line"></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="function"><span class="keyword">public</span> GenericUDAFEvaluator <span class="title">getEvaluator</span><span class="params">(GenericUDAFParameterInfo info)</span> <span class="keyword">throws</span> SemanticException </span>&#123;</div><div class="line">        <span class="keyword">return</span> <span class="keyword">super</span>.getEvaluator(info);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="function"><span class="keyword">public</span> GenericUDAFEvaluator <span class="title">getEvaluator</span><span class="params">(TypeInfo[] info)</span> <span class="keyword">throws</span> SemanticException </span>&#123;</div><div class="line">        <span class="comment">// 判断参数个数</span></div><div class="line">        <span class="keyword">if</span> (info.length != <span class="number">1</span>) &#123;</div><div class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> UDFArgumentTypeException(info.length, <span class="string">"参数个数为1"</span>);</div><div class="line">        &#125;</div><div class="line">        <span class="comment">// 判断参数类型是否合法</span></div><div class="line">        <span class="keyword">if</span> (info[<span class="number">0</span>].getCategory() != ObjectInspector.Category.PRIMITIVE) &#123;</div><div class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> UDFArgumentTypeException(<span class="number">0</span>,</div><div class="line">                    <span class="string">"Only primitive type arguments are accepted but "</span> + info[<span class="number">0</span>].getTypeName() + <span class="string">" was passed as parameter 1."</span>);</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="comment">// 不同参数类型，可以生成不同的Evaluator</span></div><div class="line">        <span class="keyword">switch</span> (((PrimitiveTypeInfo) info[<span class="number">0</span>]).getPrimitiveCategory()) &#123;</div><div class="line">            <span class="keyword">case</span> INT:</div><div class="line">            <span class="keyword">case</span> LONG:</div><div class="line">            <span class="keyword">case</span> FLOAT:</div><div class="line">            <span class="keyword">case</span> SHORT:</div><div class="line">            <span class="keyword">case</span> DOUBLE:</div><div class="line">            <span class="keyword">case</span> DECIMAL:</div><div class="line">                <span class="keyword">break</span>;</div><div class="line">            <span class="keyword">case</span> STRING:</div><div class="line">            <span class="keyword">case</span> BOOLEAN:</div><div class="line">            <span class="keyword">case</span> TIMESTAMP:</div><div class="line">            <span class="keyword">case</span> INTERVAL_DAY_TIME:</div><div class="line">            <span class="keyword">case</span> INTERVAL_YEAR_MONTH:</div><div class="line">            <span class="keyword">default</span>:</div><div class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> UDFArgumentTypeException(<span class="number">0</span>,</div><div class="line">                        <span class="string">"Only numeric type arguments are accepted but "</span> + info[<span class="number">0</span>].getTypeName() + <span class="string">" was passed as parameter 1."</span>);</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">return</span> <span class="keyword">new</span> DecimalEvaluator();</div><div class="line">    &#125;</div><div class="line">｝</div></pre></td></tr></table></figure>
+<h3 id="编写evaluator类"><a href="#编写evaluator类" class="headerlink" title="编写evaluator类"></a>编写<code>evaluator</code>类</h3><p>// 此处暂时没有搞的很清楚，先略过</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">DecimalEvaluator</span> <span class="keyword">extends</span> <span class="title">GenericUDAFEvaluator</span> </span>&#123;</div><div class="line"></div><div class="line">        <span class="meta">@Override</span></div><div class="line">        <span class="function"><span class="keyword">public</span> ObjectInspector <span class="title">init</span><span class="params">(Mode m, ObjectInspector[] parameters)</span> <span class="keyword">throws</span> HiveException </span>&#123;</div><div class="line">            <span class="keyword">return</span> <span class="keyword">super</span>.init(m, parameters);</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="meta">@Override</span></div><div class="line">        <span class="function"><span class="keyword">public</span> AggregationBuffer <span class="title">getNewAggregationBuffer</span><span class="params">()</span> <span class="keyword">throws</span> HiveException </span>&#123;</div><div class="line">            <span class="keyword">return</span> <span class="keyword">null</span>;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="meta">@Override</span></div><div class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">reset</span><span class="params">(AggregationBuffer agg)</span> <span class="keyword">throws</span> HiveException </span>&#123;</div><div class="line"></div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="meta">@Override</span></div><div class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">iterate</span><span class="params">(AggregationBuffer agg, Object[] parameters)</span> <span class="keyword">throws</span> HiveException </span>&#123;</div><div class="line"></div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="meta">@Override</span></div><div class="line">        <span class="function"><span class="keyword">public</span> Object <span class="title">terminatePartial</span><span class="params">(AggregationBuffer agg)</span> <span class="keyword">throws</span> HiveException </span>&#123;</div><div class="line">            <span class="keyword">return</span> <span class="keyword">null</span>;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="meta">@Override</span></div><div class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">merge</span><span class="params">(AggregationBuffer agg, Object partial)</span> <span class="keyword">throws</span> HiveException </span>&#123;</div><div class="line"></div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="meta">@Override</span></div><div class="line">        <span class="function"><span class="keyword">public</span> Object <span class="title">terminate</span><span class="params">(AggregationBuffer agg)</span> <span class="keyword">throws</span> HiveException </span>&#123;</div><div class="line">            <span class="keyword">return</span> <span class="keyword">null</span>;</div><div class="line">        &#125;</div><div class="line">    &#125;</div></pre></td></tr></table></figure>
+<h2 id="UDTF开发"><a href="#UDTF开发" class="headerlink" title="UDTF开发"></a>UDTF开发</h2><h2 id="部署到hive与使用"><a href="#部署到hive与使用" class="headerlink" title="部署到hive与使用"></a>部署到hive与使用</h2><p>部署有两种方式，一种是临时部署，一种是创建永久函数</p>
+<h3 id="临时创建函数"><a href="#临时创建函数" class="headerlink" title="临时创建函数"></a>临时创建函数</h3><p>hive的这个jar文件，通常要放到hdfs上，保证所有节点都可以获取到。</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">-- 创建临时函数</div><div class="line">hive&gt; ADD jar hdfs:///user/gtding/experiment/hive/hive-0.0.1-SNAPSHOT.jar;</div><div class="line"></div><div class="line">hive&gt; CREATE TEMPORARY FUNCTION my_len AS "com.iflytek.bigdata.hive.udf.MyLenUDF";</div><div class="line"></div><div class="line">-- 删除临时函数</div><div class="line">hive&gt; DROP TEMPORARY FUNCTION IF EXIST my_len;</div></pre></td></tr></table></figure>
+<h3 id="创建永久函数"><a href="#创建永久函数" class="headerlink" title="创建永久函数"></a>创建永久函数</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="comment">-- 创建永久函数</span></div><div class="line"><span class="comment">-- 这里可以带上db_name，意思是只能在该db下使用。</span></div><div class="line"><span class="comment">-- 通常jar文件是要放在hdfs上的</span></div><div class="line"><span class="keyword">CREATE</span> <span class="keyword">FUNCTION</span> [db_name.]function_name <span class="keyword">AS</span> class_name</div><div class="line">  [<span class="keyword">USING</span> JAR|<span class="keyword">FILE</span>|<span class="keyword">ARCHIVE</span> <span class="string">'file_uri'</span> [, JAR|<span class="keyword">FILE</span>|<span class="keyword">ARCHIVE</span> <span class="string">'file_uri'</span>] ];</div><div class="line"></div><div class="line"><span class="comment">-- 删除永久函数</span></div><div class="line"><span class="keyword">DROP</span> <span class="keyword">FUNCTION</span> <span class="keyword">IF</span> <span class="keyword">EXISTS</span> function_name;</div></pre></td></tr></table></figure>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ol>
+<li><a href="https://cwiki.apache.org/confluence/display/Hive/LanguageManual+UDF" target="_blank" rel="external">https://cwiki.apache.org/confluence/display/Hive/LanguageManual+UDF</a></li>
+<li><a href="https://cwiki.apache.org/confluence/display/Hive/GenericUDAFCaseStudy" target="_blank" rel="external">https://cwiki.apache.org/confluence/display/Hive/GenericUDAFCaseStudy</a></li>
+<li><a href="https://www.jianshu.com/p/ca9dce6b5c37" target="_blank" rel="external">https://www.jianshu.com/p/ca9dce6b5c37</a></li>
+<li><a href="https://www.cnblogs.com/itxuexiwang/p/6264547.html" target="_blank" rel="external">https://www.cnblogs.com/itxuexiwang/p/6264547.html</a></li>
+<li></li>
+</ol>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Hive/" rel="tag"># Hive</a>
+          
+        </div>
+      
+
+      
+        
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/12/10/2017-12-10CountDownLatch和join的区别/" rel="next" title="2017-12-10CountDownLatch和join的区别">
+                <i class="fa fa-chevron-left"></i> 2017-12-10CountDownLatch和join的区别
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2020/01/01/2017-05-27博客收录/" rel="prev" title="博客收录">
+                博客收录 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="cloud-tie-wrapper" class="cloud-tie-wrapper"></div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.png"
+               alt="[object Object]" />
+          <p class="site-author-name" itemprop="name">[object Object]</p>
+           
+              <p class="site-description motion-element" itemprop="description">Hadoop, Spark, OpenStack，Docker</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">12</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">14</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/iclouding" target="_blank" title="Github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  Github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.cnblogs.com/icloud/" target="_blank" title="博客园">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  博客园
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+        
+        
+    <div class="links-of-blogroll motion-element links-of-blogroll-block">
+      <div class="links-of-blogroll-title">
+        <!-- modify icon to fire by szw -->
+        <i class="fa fa-history fa-" aria-hidden="true"></i>
+        近期文章
+      </div>
+          <ul class="links-of-blogroll-list">
+            
+            
+              <li>
+                <a href="/2020/01/01/2017-05-27博客收录/" title="博客收录" target="_blank">博客收录</a>
+              </li>
+            
+              <li>
+                <a href="/2018/05/16/2018-05-16Hive-UDF和UDAF开发/" title="Hive UDF和UDAF开发" target="_blank">Hive UDF和UDAF开发</a>
+              </li>
+            
+              <li>
+                <a href="/2017/12/10/2017-12-10CountDownLatch和join的区别/" title="2017-12-10CountDownLatch和join的区别" target="_blank">2017-12-10CountDownLatch和join的区别</a>
+              </li>
+            
+              <li>
+                <a href="/2017/12/08/Hadoop序列化/" title="Hadoop序列化" target="_blank">Hadoop序列化</a>
+              </li>
+            
+              <li>
+                <a href="/2017/09/29/2017-09-29Superset数据分析与使用/" title="2017-09-29Superset数据分析与使用" target="_blank">2017-09-29Superset数据分析与使用</a>
+              </li>
+            
+              </ul>
+            </div>
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Hive-UDF、UDAF、UDTF开发"><span class="nav-number">1.</span> <span class="nav-text">Hive UDF、UDAF、UDTF开发</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#概述"><span class="nav-number">1.1.</span> <span class="nav-text">概述</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#pom文件"><span class="nav-number">1.1.1.</span> <span class="nav-text">pom文件</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#UDF开发"><span class="nav-number">1.2.</span> <span class="nav-text">UDF开发</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#基础UDF开发"><span class="nav-number">1.2.1.</span> <span class="nav-text">基础UDF开发</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#区别"><span class="nav-number">1.2.2.</span> <span class="nav-text">区别</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#UDAF开发"><span class="nav-number">1.3.</span> <span class="nav-text">UDAF开发</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#UDAF的运行流程简介"><span class="nav-number">1.3.1.</span> <span class="nav-text">UDAF的运行流程简介</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#编写resolver类"><span class="nav-number">1.3.2.</span> <span class="nav-text">编写resolver类</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#编写evaluator类"><span class="nav-number">1.3.3.</span> <span class="nav-text">编写evaluator类</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#UDTF开发"><span class="nav-number">1.4.</span> <span class="nav-text">UDTF开发</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#部署到hive与使用"><span class="nav-number">1.5.</span> <span class="nav-text">部署到hive与使用</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#临时创建函数"><span class="nav-number">1.5.1.</span> <span class="nav-text">临时创建函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#创建永久函数"><span class="nav-number">1.5.2.</span> <span class="nav-text">创建永久函数</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考资料"><span class="nav-number">1.6.</span> <span class="nav-text">参考资料</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">iclouding</span>
+</div>
+
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.1"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+    
+    <script>
+      var cloudTieConfig = {
+        url: document.location.href, 
+        sourceId: "",
+        productKey: "e5e46c90da2d400e9a09f945448bb299",
+        target: "cloud-tie-wrapper"
+      };
+    </script>
+    <script src="https://img1.ws.126.net/f2e/tie/yun/sdk/loader.js"></script>
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("ExxAsfadHnGbfXNeH3Y3EoEQ-gzGzoHsz", "scr6biItx0UTfQik4OWLoR36");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  <script type="text/javascript" src="/js/src/js.cookie.js?v=5.1.1"></script>
+  <script type="text/javascript" src="/js/src/scroll-cookie.js?v=5.1.1"></script>
+
+
+  
+
+</body>
+</html>
