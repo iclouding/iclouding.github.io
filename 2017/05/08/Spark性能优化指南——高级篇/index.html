@@ -98,7 +98,7 @@
 <meta name="keywords" content="Spark">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Spark性能优化指南——高级篇">
-<meta property="og:url" content="http://yoursite.com/2017/05/08/Spark性能优化指南——高级篇/index.html">
+<meta property="og:url" content="https://iclouding.github.io/2017/05/08/Spark性能优化指南——高级篇/index.html">
 <meta property="og:site_name" content="大数据部落">
 <meta property="og:description" content="Spark性能优化指南——高级篇[TOC]  前言继基础篇讲解了每个Spark开发人员都必须熟知的开发调优与资源调优之后，本文作为《Spark性能优化指南》的高级篇，将深入分析数据倾斜调优与shuffle调优，以解决更加棘手的性能问题。 数据倾斜调优调优概述有的时候，我们可能会遇到大数据计算中一个最棘手的问题——数据倾斜，此时Spark作业的性能会比期望差很多。数据倾斜调优，就是使用各种技术方案解">
 <meta property="og:image" content="http://tech.meituan.com/img/spark-tuning/skwed-mech.png">
@@ -143,7 +143,7 @@
 
 
 
-  <link rel="canonical" href="http://yoursite.com/2017/05/08/Spark性能优化指南——高级篇/"/>
+  <link rel="canonical" href="https://iclouding.github.io/2017/05/08/Spark性能优化指南——高级篇/"/>
 
 
 
@@ -288,7 +288,7 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/05/08/Spark性能优化指南——高级篇/">
+    <link itemprop="mainEntityOfPage" href="https://iclouding.github.io/2017/05/08/Spark性能优化指南——高级篇/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="[object Object]">
@@ -409,7 +409,7 @@
       
         <h1 id="Spark性能优化指南——高级篇"><a href="#Spark性能优化指南——高级篇" class="headerlink" title="Spark性能优化指南——高级篇"></a>Spark性能优化指南——高级篇</h1><p>[TOC]</p>
 <hr>
-<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>继<a href="https://iclouding.github.io/2017/05/08/Spark性能优化指南——基础篇/" target="_blank" rel="external">基础篇</a>讲解了每个Spark开发人员都必须熟知的开发调优与资源调优之后，本文作为《Spark性能优化指南》的高级篇，将深入分析数据倾斜调优与shuffle调优，以解决更加棘手的性能问题。</p>
+<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>继<a href="https://iclouding.github.io/2017/05/08/Spark性能优化指南——基础篇/">基础篇</a>讲解了每个Spark开发人员都必须熟知的开发调优与资源调优之后，本文作为《Spark性能优化指南》的高级篇，将深入分析数据倾斜调优与shuffle调优，以解决更加棘手的性能问题。</p>
 <h1 id="数据倾斜调优"><a href="#数据倾斜调优" class="headerlink" title="数据倾斜调优"></a>数据倾斜调优</h1><h2 id="调优概述"><a href="#调优概述" class="headerlink" title="调优概述"></a>调优概述</h2><p>有的时候，我们可能会遇到大数据计算中一个最棘手的问题——数据倾斜，此时Spark作业的性能会比期望差很多。数据倾斜调优，就是使用各种技术方案解决不同类型的数据倾斜问题，以保证Spark作业的性能。</p>
 <h2 id="数据倾斜发生时的现象"><a href="#数据倾斜发生时的现象" class="headerlink" title="数据倾斜发生时的现象"></a>数据倾斜发生时的现象</h2><ul>
 <li>绝大多数task执行得都非常快，但个别task执行极慢。比如，总共有1000个task，997个task都在1分钟之内执行完了，但是剩余两三个task却要一两个小时。这种情况很常见。</li>
@@ -619,14 +619,18 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
+              <a href="/2017/05/08/Spark性能优化指南——基础篇/" rel="next" title="Spark性能优化指南——基础篇">
+                <i class="fa fa-chevron-left"></i> Spark性能优化指南——基础篇
+              </a>
+            
           </div>
 
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/2017/05/08/Spark性能优化指南——基础篇/" rel="prev" title="Spark性能优化指南——基础篇">
-                Spark性能优化指南——基础篇 <i class="fa fa-chevron-right"></i>
+              <a href="/2017/05/14/Spark内存管理/" rel="prev" title="Spark内存管理">
+                Spark内存管理 <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
